@@ -13,6 +13,7 @@ local SECTIONS = {
   "tetravim.health.jvm",
   "tetravim.health.devops",
   "tetravim.health.clients",
+  "tetravim.health.ai",
   "tetravim.health.quality",
   "tetravim.health.editor",
 }

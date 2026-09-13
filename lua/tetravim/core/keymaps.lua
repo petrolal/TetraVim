@@ -305,6 +305,82 @@ map("n", "<leader>ahj", function()
   end)
 end, { desc = "jq-Filter JSON Response/Buffer" })
 
+-- AI Assistant Keymaps (<leader>i), one which-key group per tool so each can
+-- be enabled/disabled/configured independently via tetravim.util.ai.config
+-- (<leader>is). Every keymap here is a thin dispatcher into a
+-- tetravim.util.ai.* wrapper, which guards for its plugin/CLI not being
+-- present and for a missing API key/credential. Gemini (<leader>ig) is the
+-- one tool with no Neovim plugin behind it at all -- it shells out to the
+-- official `gemini` CLI (tetravim.util.ai.gemini), so its keymap block is
+-- gated directly on is_enabled() here rather than a lazy.nvim spec.
+local ai_cc = require("tetravim.util.ai.codecompanion")
+local ai_gemini = require("tetravim.util.ai.gemini")
+local ai_copilot = require("tetravim.util.ai.copilot")
+local ai_cursor = require("tetravim.util.ai.cursor")
+local ai_config = require("tetravim.util.ai.config")
+
+-- Claude group (<leader>ic) -- codecompanion.nvim, anthropic adapter.
+map("n", "<leader>icc", ai_cc.toggle_chat, { desc = "Toggle Chat" })
+map({ "n", "x" }, "<leader>ica", ai_cc.actions, { desc = "Actions Palette" })
+map("x", "<leader>ice", function()
+  ai_cc.visual_prompt("/explain")
+end, { desc = "Explain Selection" })
+map("x", "<leader>icf", function()
+  ai_cc.visual_prompt("/fix")
+end, { desc = "Fix Selection" })
+map("x", "<leader>ict", function()
+  ai_cc.visual_prompt("/tests")
+end, { desc = "Generate Tests For Selection" })
+map("x", "<leader>icb", ai_cc.add_selection_to_chat, { desc = "Add Selection To Chat" })
+map({ "n", "x" }, "<leader>ici", ai_cc.custom_prompt, { desc = "Custom Instruction" })
+map("n", "<leader>icg", ai_cc.commit_message, { desc = "Generate Commit Message" })
+
+-- Gemini group (<leader>ig) -- official `gemini` CLI, run in a terminal.
+if ai_config.is_enabled("gemini") then
+  map("n", "<leader>igc", ai_gemini.toggle_chat, { desc = "Toggle Chat" })
+  map("x", "<leader>ige", ai_gemini.explain, { desc = "Explain Selection" })
+  map("x", "<leader>igf", ai_gemini.fix, { desc = "Fix Selection" })
+  map("x", "<leader>igt", ai_gemini.tests, { desc = "Generate Tests For Selection" })
+  map({ "n", "x" }, "<leader>igi", ai_gemini.custom_prompt, { desc = "Custom Instruction" })
+  map("n", "<leader>igg", ai_gemini.commit_message, { desc = "Generate Commit Message" })
+end
+
+-- Copilot group (<leader>ip) -- copilot.lua ghost-text engine.
+map("n", "<leader>ipt", ai_copilot.toggle, { desc = "Toggle Suggestions" })
+map("n", "<leader>ips", ai_copilot.status, { desc = "Status" })
+map("n", "<leader>ipp", ai_copilot.panel, { desc = "Suggestions Panel" })
+map("n", "<leader>ipa", ai_copilot.auth, { desc = "Authenticate" })
+
+-- Cursor group (<leader>iv) -- avante.nvim inline diff-apply editing.
+map("n", "<leader>ivv", ai_cursor.toggle, { desc = "Toggle Sidebar" })
+map("n", "<leader>iva", ai_cursor.ask, { desc = "Ask" })
+map("x", "<leader>ive", ai_cursor.edit, { desc = "Edit Selection" })
+map("n", "<leader>ivr", ai_cursor.refresh, { desc = "Refresh" })
+map("n", "<leader>ivm", ai_cursor.switch_provider, { desc = "Switch Provider" })
+
+-- Settings (<leader>is) -- enable/disable each tool and pick the default
+-- provider/model without editing Lua. Toggling `enabled` here needs a
+-- `:Lazy reload <plugin>` or a restart to actually install/uninstall the
+-- plugin -- lazy.nvim only resolves `enabled = function` when it builds the
+-- plugin list.
+map("n", "<leader>is", function()
+  local tools = ai_config.TOOL_NAMES
+  local labels = vim.tbl_map(function(tool)
+    return string.format("%-8s [%s]", tool, ai_config.is_enabled(tool) and "on" or "off")
+  end, tools)
+  vim.ui.select(labels, { prompt = "Toggle AI tool (needs :Lazy reload / restart to apply):" }, function(_, idx)
+    if not idx then
+      return
+    end
+    local tool = tools[idx]
+    ai_config.set_enabled(tool, not ai_config.is_enabled(tool))
+    require("tetravim.util.ui").notify_info(
+      tool .. " " .. (ai_config.is_enabled(tool) and "enabled" or "disabled") .. " -- run :Lazy reload or restart",
+      "TetraVim AI"
+    )
+  end)
+end, { desc = "Toggle Enabled Tools" })
+
 -- gRPC & Protobufs Integration Keymaps (SPEC-3.4). The `.proto` LSP
 -- (protols), Tree-sitter parser and `buf` formatter are wired in
 -- lsp-proto.lua / core-treesitter.lua / tools-formatting.lua; the two

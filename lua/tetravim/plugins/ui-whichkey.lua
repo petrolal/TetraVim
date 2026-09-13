@@ -32,6 +32,11 @@ return {
         { "<leader>ad", group = "database", icon = "󰆼 " },
         { "<leader>ah", group = "http", icon = "󰖟 " },
         { "<leader>ag", group = "grpc/proto", icon = "󱅥 " },
+        { "<leader>i", group = "ai assistant", icon = "󰧑 " },
+        { "<leader>ic", group = "claude", icon = "󰧑 " },
+        { "<leader>ig", group = "gemini", icon = "󰧑 " },
+        { "<leader>ip", group = "copilot", icon = "󰚩 " },
+        { "<leader>iv", group = "cursor", icon = "󰅬 " },
         { "<leader>t", group = "test runner", icon = "󰙨 " },
         { "<leader>x", group = "quality/security", icon = "󰒃 " },
         { "<leader>xd", group = "diagnostics", icon = "󰒡 " },
@@ -216,6 +221,43 @@ return {
         { "<leader>agm", desc = "Describe Symbol", icon = "󱅥 " },
         { "<leader>agi", desc = "Generate Request Skeleton", icon = "󱅥 " },
         { "<leader>agf", desc = "Format .proto Buffer", icon = "󱅥 " },
+      })
+
+      -- AI Assistant, one which-key group per tool (<leader>i)
+      vim.list_extend(opts.spec, {
+        -- Claude (<leader>ic) -- codecompanion.nvim, anthropic adapter
+        { "<leader>icc", desc = "Toggle Chat", icon = "󰧑 " },
+        { "<leader>ica", desc = "Actions Palette", icon = "󰧑 " },
+        { "<leader>ice", desc = "Explain Selection", icon = "󰧑 " },
+        { "<leader>icf", desc = "Fix Selection", icon = "󰧑 " },
+        { "<leader>ict", desc = "Generate Tests For Selection", icon = "󰧑 " },
+        { "<leader>icb", desc = "Add Selection To Chat", icon = "󰧑 " },
+        { "<leader>ici", desc = "Custom Instruction", icon = "󰧑 " },
+        { "<leader>icg", desc = "Generate Commit Message", icon = "󰧑 " },
+
+        -- Gemini (<leader>ig) -- official `gemini` CLI, run in a terminal
+        { "<leader>igc", desc = "Toggle Chat", icon = "󰧑 " },
+        { "<leader>ige", desc = "Explain Selection", icon = "󰧑 " },
+        { "<leader>igf", desc = "Fix Selection", icon = "󰧑 " },
+        { "<leader>igt", desc = "Generate Tests For Selection", icon = "󰧑 " },
+        { "<leader>igi", desc = "Custom Instruction", icon = "󰧑 " },
+        { "<leader>igg", desc = "Generate Commit Message", icon = "󰧑 " },
+
+        -- Copilot (<leader>ip) -- copilot.lua ghost-text engine
+        { "<leader>ipt", desc = "Toggle Suggestions", icon = "󰚩 " },
+        { "<leader>ips", desc = "Status", icon = "󰚩 " },
+        { "<leader>ipp", desc = "Suggestions Panel", icon = "󰚩 " },
+        { "<leader>ipa", desc = "Authenticate", icon = "󰚩 " },
+
+        -- Cursor (<leader>iv) -- avante.nvim inline diff-apply editing
+        { "<leader>ivv", desc = "Toggle Sidebar", icon = "󰅬 " },
+        { "<leader>iva", desc = "Ask", icon = "󰅬 " },
+        { "<leader>ive", desc = "Edit Selection", icon = "󰅬 " },
+        { "<leader>ivr", desc = "Refresh", icon = "󰅬 " },
+        { "<leader>ivm", desc = "Switch Provider", icon = "󰅬 " },
+
+        -- Settings
+        { "<leader>is", desc = "Toggle Enabled Tools", icon = "󰧑 " },
       })
 
       -- Test Runner (<leader>t)
