@@ -16,9 +16,10 @@ Welcome to the **TetraVim** technical reference manual. This document consolidat
 | `lua/tetravim/plugins/` | Lazy.nvim plugin specifications (`lsp-*`, `tools-*`, `editor-*`, `ui-*`, `cloud-*`, `core-*`). |
 | `lua/tetravim/util/` | Pure Lua business logic and utility modules (`jvm`, `spring`, `refactor`, `extract`, `filetemplate`, `db`, `http`, `grpc`, `sonar`, `cve`, `lsp_async`, `lsp_resilience`, `lsp_capabilities`, `coverage`, `git`). |
 | `lua/tetravim/theme/` | High-contrast dark palette (`tetris.lua`) and theme management (`init.lua`). |
+| `lua/tetravim/tests/` | Plenary Busted unit, integration, and subsystem test specs. |
 | `colors/tetravim.lua` | `:colorscheme tetravim` entry point. |
 | `ftplugin/*.lua` | Buffer-local filetype hooks (notably `java.lua` starting `nvim-jdtls`). |
-| `scripts/` | Bootstrap, headless setup, dependency downloaders, and subsystem verification test suites. |
+| `bootstrap.sh` | Interactive installer for dependencies, toolchains, and environment bootstrap. |
 
 ---
 
@@ -41,8 +42,8 @@ Keymaps are structured across four registration layers:
 - **Health Probes**: Run `:checkhealth tetravim` to inspect LSP resilience status and external dependencies.
 
 ### Headless Setup & Telemetry
-- **Headless Provisioning**: `scripts/headless-setup.sh` provisions TetraVim in CI/CD, Dev Containers, GitHub Codespaces, or Coder environments non-interactively (`TETRAVIM_HEADLESS=1`).
-- **Machine-Readable Health Snapshot**: For CI compliance gates, `:CheckHealthJson` (or `require('tetravim.core.health').json()`) emits JSON with editor metadata, LSP client states, and plugin counts.
+- **Headless Provisioning**: `nvim --headless -u init.lua -c "lua require('tetravim.core.setup').run()" -c "qa!"` provisions TetraVim in CI/CD, Dev Containers, GitHub Codespaces, or Coder environments non-interactively.
+- **Machine-Readable Health Snapshot**: For CI compliance gates, `:CheckHealthJson` (or `require('tetravim.core.health_json').json()`) emits JSON with editor metadata, LSP client states, and plugin counts.
 - **Local-Only Telemetry**: Opt-in diagnostic logging:
   - `:TetraVimTelemetryEnable`: Enables JSON logging to `telemetry.log` in the configuration root.
   - `:TetraVimTelemetryDisable`: Disables telemetry logging.
@@ -69,39 +70,29 @@ Keymaps are structured across four registration layers:
 
 ---
 
-## 5. Scripts & Validation Suites
+## 5. Provisioning & Verification Suites
 
-TetraVim includes headless verification scripts that test subsystems in isolated Neovim instances:
+TetraVim provides native automated provisioning and a comprehensive Plenary Busted test suite:
 
-### Provisioning Scripts
-| Script | Purpose |
+### Provisioning Workflows
+| Command / Entry Point | Purpose |
 | --- | --- |
-| `bootstrap.sh` | Interactive installer that verifies dependencies, syncs lazy.nvim plugins, fetches JVM extensions, and checks health. |
-| `scripts/dev-init.sh` | Sets up a local development environment by symlinking `~/.config/nvim` to the repository root and syncing plugins. |
-| `scripts/headless-setup.sh` | Non-interactive provisioning for CI/CD pipelines, Dev Containers, and GitHub Codespaces (`TETRAVIM_HEADLESS=1`). |
-| `scripts/fetch-jvm-lsp-jars.sh` | Downloads Quarkus (`vscode-quarkus`) and MicroProfile (`vscode-microprofile`) LSP server jars from Open VSX into `stdpath("data")/tetravim/jvm-lsp`. |
+| `bash bootstrap.sh` | Interactive installer that verifies dependencies, syncs Lazy plugins, fetches JVM extensions, and runs health checks. |
+| `nvim --headless -u init.lua -c "lua require('tetravim.core.setup').run()" -c "qa!"` | Native non-interactive provisioning pipeline (Lazy sync, Mason tool-chain, JVM LSP jars, Tree-sitter parsers, health snapshot). |
+| `:TetraVimSetup` | In-editor interactive command triggering the full provisioning and dependency update pipeline. |
 
 ### Subsystem Verification Suites
-| Script / Command | Subsystem Tested |
-| --- | --- |
-| `bash scripts/validate.sh` | Full distribution smoke test (syntax, headless load, core modules, theme) |
-| `nvim --headless -c "Lazy! load plenary.nvim" -c "PlenaryBustedDirectory lua/tetravim/tests/" -c "qa"` | Plenary Busted unit & integration test suite |
-| `bash scripts/validate-jvm-frameworks.sh` | Spring Boot, Quarkus, and MicroProfile LSP resolver & configuration intelligence |
-| `bash scripts/validate-2-3.sh` | Spring Boot discovery via Tree-sitter and DAP integration |
-| `bash scripts/validate-3-4.sh` | JVM framework language server extensions and auto-configuration |
-| `bash scripts/validate-refactor.sh` | Safe rename and move refactoring across project buffers |
-| `bash scripts/validate-extract.sh` | Method, variable, and interface extraction refactoring |
-| `bash scripts/validate-filetemplate.sh` | "New File from Template" IDEA-style file scaffolding |
-| `bash scripts/validate-completion.sh` | `nvim-cmp`, `LuaSnip`, snippet expansion, and LSP capabilities |
-| `bash scripts/validate-dap-jvm.sh` | JVM DAP debugging, breakpoint controls, and stepping |
-| `bash scripts/validate-db.sh` | Database explorer (`vim-dadbod`) and Spring datasource auto-discovery |
-| `bash scripts/validate-http.sh` | HTTP client (`kulala.nvim`), environment files, and OpenAPI explorer |
-| `bash scripts/validate-4-1.sh` | Git 3-way merge conflict resolution and `diffview.nvim` integration |
-| `bash scripts/validate-4-2.sh` | In-editor code review tooling for GitHub and GitLab |
-| `bash scripts/validate-5.sh` | Asynchronous LSP dispatch, memory bounds (`-Xmx2g`), and crash recovery |
-| `bash scripts/validate-6.sh` | Code quality (SonarQube/SonarLint) and security vulnerability scanning (`osv-scanner`) |
-| `bash scripts/validate-test-coverage.sh` | Native JaCoCo XML test coverage gutter/overlay engine |
-| `bash scripts/validate-devops.sh` | DevOps infrastructure root discovery (Terraform, Docker, K8s, Ansible) |
+Run tests via headless Plenary Busted:
+
+| Target | Command | Subsystems Covered |
+| --- | --- | --- |
+| **Full Test Suite** | `nvim --headless -u init.lua -c "Lazy! load plenary.nvim" -c "PlenaryBustedDirectory lua/tetravim/tests/" -c "qa"` | All 40+ unit, integration, and architecture specs |
+| **Smoke Suite** | `nvim --headless -u init.lua -c "Lazy! load plenary.nvim" -c "PlenaryBustedFile lua/tetravim/tests/smoke_spec.lua" -c "qa"` | Fast sanity check of core modules and load order |
+| **JVM Platform** | `nvim --headless -u init.lua -c "Lazy! load plenary.nvim" -c "PlenaryBustedFile lua/tetravim/tests/jvm_test_spec.lua" -c "qa"` | Maven/Gradle builds, Spring Boot discovery, DAP debugging, JaCoCo coverage |
+| **DevOps Suite** | `nvim --headless -u init.lua -c "Lazy! load plenary.nvim" -c "PlenaryBustedFile lua/tetravim/tests/devops_validation_spec.lua" -c "qa"` | Terraform, Docker, Kubernetes/Helm, Ansible workspace discovery & tool validation |
+| **LSP & Resilience** | `nvim --headless -u init.lua -c "Lazy! load plenary.nvim" -c "PlenaryBustedFile lua/tetravim/tests/lsp_resilience_spec.lua" -c "qa"` | Async dispatch, bounded memory limits, crash auto-recovery |
+| **Code Quality & Security** | `nvim --headless -u init.lua -c "Lazy! load plenary.nvim" -c "PlenaryBustedFile lua/tetravim/tests/sonar_spec.lua" -c "qa"` | SonarQube/SonarLint diagnostics and `osv-scanner` CVE audits |
+| **Formatting & Linting** | `stylua --check . && bash -n bootstrap.sh` | Code style enforcement (2-space indent, 120 column) and shell script syntax validation |
 
 ---
 
@@ -181,4 +172,4 @@ What IntelliJ IDEA Ultimate supports out of the box, and how TetraVim covers it 
 
 ## 7. License
 
-This project is distributed solely under the [BSD 3-Clause License](../LICENSE). See [LICENSE](../LICENSE) for details.
+This project is distributed solely under the [GNU General Public License v3.0 (GPL-3.0)](../LICENSE). See [LICENSE](../LICENSE) for details.

@@ -69,7 +69,7 @@ file returns a lazy.nvim spec (single spec table or a list of them). `defaults.l
 | `colors/tetravim.lua` | `:colorscheme tetravim` entry point |
 | `lua/tetravim/tests/` | `*_spec.lua` plenary busted specs |
 | `ftplugin/*.lua` | Per-filetype auto-launchers (notably `java.lua` starting `nvim-jdtls`) |
-| `scripts/` | Bootstrap / headless / `validate-*.sh` scripts |
+| `bootstrap.sh` | Full dependency installer and bootstrap script |
 | `docs/README.md` | Project documentation and architecture overview |
 
 ### Keymap system

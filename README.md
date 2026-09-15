@@ -55,8 +55,7 @@ The interactive bootstrap verifies system dependencies, syncs Lazy.nvim plugins,
 For CI/CD pipelines, Docker containers, GitHub Codespaces, or Coder environments:
 ```bash
 git clone https://github.com/petrolal/tetravim.nvim.git ~/.config/nvim
-cd ~/.config/nvim
-./scripts/headless-setup.sh
+nvim --headless -u ~/.config/nvim/init.lua -c "lua require('tetravim.core.setup').run()" -c "qa!"
 ```
 
 ---
@@ -114,4 +113,4 @@ For in-depth architecture details, subsystem test suites, and the full IntelliJ 
 
 ## License
 
-This project is distributed solely under the [BSD 3-Clause License](LICENSE). See [LICENSE](LICENSE) for details.
+This project is distributed solely under the [GNU General Public License v3.0 (GPL-3.0)](LICENSE). See [LICENSE](LICENSE) for details.
