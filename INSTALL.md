@@ -1,89 +1,135 @@
 # TetraVim Neovim Installation Guide
 
-## Quick Start (One Shot Install)
+Enterprise-ready Neovim distribution for modern JVM backend engineering (Java, Kotlin, Scala, Gradle, Maven) and Cloud Native development.
+
+---
+
+## System Requirements
+
+| Requirement | Details |
+| --- | --- |
+| **Neovim ≥ 0.11** | Required for native `vim.lsp.config`/`vim.lsp.enable`, `vim.diagnostic.jump`, and floating window borders. |
+| **Java JDK ≥ 17** | Required by language servers (JDTLS, Metals, Kotlin LS). Java 21+ supported. |
+| **Nerd Font (v3.0+)** | Required for rendering glyphs in the statusline, file tree, breadcrumbs, and dashboard. |
+| **True-color Terminal** | 24-bit colour terminal (WezTerm, Ghostty, Alacritty, Kitty, modern iTerm2 / Windows Terminal). |
+| **CLI Utilities** | `git`, `ripgrep`, `fd`, `make`, and a C compiler (for Treesitter and `fzf-native` builds). |
+
+---
+
+## Quick Start (Interactive Install)
 
 ### 1. Clone the Repository
 ```bash
 git clone https://github.com/petrolal/tetravim.nvim.git ~/.config/nvim
 ```
 
-### 2. Run Setup
+### 2. Run Bootstrap
 ```bash
 cd ~/.config/nvim
-bash bootstrap.sh
+./bootstrap.sh
 ```
 
-This single command will:
-- ✔ Ensure basic dependencies are present (git, neovim, ripgrep, java)
-- ✔ Sync all plugins via Lazy.nvim
-- ✔ Verify health and setup
+The interactive installer will:
+- ✔ Verify required tools (`git`, `nvim`, `java`, `rg`, `fd`, compiler)
+- ✔ Sync plugins headlessly via `lazy.nvim`
+- ✔ Download and configure Mason language servers and tools
+- ✔ Fetch JVM language server extensions (Quarkus, MicroProfile)
+- ✔ Verify installation health
 
-### 3. Done!
+### 3. Launch
 ```bash
 nvim
 ```
 
-Plain `nvim` command now launches TetraVim. That's it!
+---
+
+## Headless & CI / Dev Container Install
+
+For automated CI workflows, Docker images, GitHub Codespaces, or Coder environments:
+
+```bash
+git clone https://github.com/petrolal/tetravim.nvim.git ~/.config/nvim
+cd ~/.config/nvim
+./scripts/headless-setup.sh
+```
+
+- Sets `TETRAVIM_HEADLESS=1` to bypass interactive prompts and TTY requirements.
+- Runs `lazy.nvim` plugin sync, Mason tool installations, Treesitter parsers, and generates health diagnostics.
 
 ---
 
 ## What Gets Installed
 
 ### System Dependencies
-- **git** - Version control
-- **neovim** - Editor (>= 0.10 recommended)
-- **java** - Required by LSP tools (JDTLS, Metals, etc.)
-- **ripgrep** - For fast file searching (Telescope)
-- **fd** - For fast file finding
+- **Neovim (≥ 0.11)**: Editor runtime.
+- **Java (≥ 17)**: JVM runtime for language servers and build tools.
+- **Git, Ripgrep, Fd**: Core search, navigation, and version control tools.
+- **C Compiler & Make**: Native builds for Tree-sitter parsers and Telescope FZF.
 
-### TetraVim Components
-- **~/.config/nvim** - Symlinked to repository
-- **Lazy plugins** - All plugins from `lua/tetravim/plugins/` (nvim-jdtls, nvim-dap, etc.)
+### Configuration Layout
+- `~/.config/nvim/init.lua`: Editor entry point.
+- `~/.config/nvim/lua/tetravim/`: Core configuration, plugin specs, theme, and utility modules.
+- `~/.local/share/nvim/lazy/`: Plugin directory managed by `lazy.nvim`.
+- `~/.local/share/nvim/mason/`: Language servers, linters, and debug adapters managed by Mason.
+
+---
+
+## Health Check & Verification
+
+Run Neovim's health check inside TetraVim:
+```vim
+:checkhealth tetravim
+```
+
+Or generate a machine-readable JSON snapshot:
+```vim
+:CheckHealthJson
+```
 
 ---
 
 ## Troubleshooting
 
-### "Neovim: nvim not found"
-Install Neovim:
+### "Neovim: nvim not found" or version < 0.11
+Install or update Neovim:
 ```bash
-# macOS
+# macOS (Homebrew)
 brew install neovim
 
-# Ubuntu/Debian
-sudo apt install neovim
+# Ubuntu / Debian
+# Install latest release via Neovim PPA or GitHub release appimage/tarball
+sudo add-apt-repository ppa:neovim-ppa/unstable
+sudo apt update && sudo apt install neovim
 
-# Arch
+# Arch Linux
 sudo pacman -S neovim
 
 # Fedora
 sudo dnf install neovim
 ```
 
-### Plugin sync failed
-Run inside Neovim:
+### Plugin or Tool Sync Failed
+Inside Neovim, force sync plugins and Mason tools:
 ```vim
 :Lazy sync
+:MasonToolsInstall
 ```
 
 ---
 
-## Uninstall
+## Uninstallation
 
 To remove TetraVim:
-
 ```bash
-# Remove configuration folder
+# Remove configuration
 rm -rf ~/.config/nvim
 
-# Restore backup if you had previous config
-mv ~/.config/nvim.backup.* ~/.config/nvim
+# Optional: Clean up installed plugins and state
+rm -rf ~/.local/share/nvim ~/.local/state/nvim ~/.cache/nvim
 ```
 
 ---
 
-## Getting Help
+## License
 
-Online:
-- GitHub Issues: https://github.com/petrolal/tetravim.nvim/issues
-- Documentation: https://github.com/petrolal/tetravim.nvim
+This project is dual-licensed under either the [MIT License](LICENSE) or the [BSD 2-Clause License](LICENSE) at your option. Attribution to Lucas Petrola is required for any redistributions. See [LICENSE](LICENSE) for details.

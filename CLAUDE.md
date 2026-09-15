@@ -80,7 +80,7 @@ file returns a lazy.nvim spec (single spec table or a list of them). `defaults.l
 | `lua/tetravim/tests/` | `*_spec.lua` plenary busted specs |
 | `ftplugin/*.lua` | Per-filetype auto-launchers (notably `java.lua` starting `nvim-jdtls`) |
 | `scripts/` | Bootstrap / headless / `validate-*.sh` scripts |
-| `docs/README.md` | Stale — references removed `_bmad-output/*` planning artifacts that no longer exist |
+| `docs/README.md` | Project documentation and architecture overview |
 
 ### Keymap system
 

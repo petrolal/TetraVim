@@ -52,6 +52,15 @@ cd ~/.config/nvim
 
 ---
 
+## Documentation
+
+- **[Installation & Troubleshooting Guide](INSTALL.md)**: System dependencies, headless/CI provisioning, and troubleshooting.
+- **[Architecture & Features Reference](docs/README.md)**: Deep dive into modules, keymap systems, async resilience, SonarQube, and CVE scanning.
+- **[IntelliJ IDEA Parity Matrix](docs/ide-parity.md)**: Detailed feature-by-feature mapping from IntelliJ IDEA Ultimate to native Neovim tooling.
+- **[Scripts & Test Suites](scripts/README.md)**: Overview of provisioning scripts and automated headless validation suites.
+
+---
+
 ## License
 
 This project is dual-licensed under either the [MIT License](LICENSE) or the [BSD 2-Clause License](LICENSE) at your option. Mandatory attribution to Lucas Petrola is required for any redistributions. See [LICENSE](LICENSE) for details.

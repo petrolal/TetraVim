@@ -1,76 +1,95 @@
 # TetraVim Project Knowledge & Documentation
 
-Welcome to the **TetraVim** documentation repository. This directory serves as the project knowledge base configured for BMAD (`project_knowledge: "{project-root}/docs"`).
+Welcome to the **TetraVim** documentation. This directory serves as the project knowledge base and technical reference for `tetravim.nvim`.
 
 ## Architecture Overview
 
-`tetravim.nvim` is an enterprise-ready Neovim distribution for JVM backend engineering (Java, Kotlin, Scala). It is **pure native Neovim** — standard LSPs (`nvim-jdtls`, Kotlin Language Server, `nvim-metals`), Tree-sitter, Mason tools, and Lua utilities. There is no `tetravim-engine`, no Scala backend, and no bridge.
+`tetravim.nvim` is an enterprise-ready Neovim distribution for modern JVM backend engineering (Java, Kotlin, Scala, Gradle, Maven) and Cloud-Native development.
+
+It is **pure native Neovim** — built with standard LSPs (`nvim-jdtls`, Kotlin Language Server, `nvim-metals`), Tree-sitter, Mason tooling, `nvim-dap`, and modular Lua utilities. There is no companion daemon, external Scala backend, or custom engine bridge.
 
 ### Key Modules
 
-- **Core**: `lua/tetravim/core/` (Options, keymaps, autocmds, devops, lazy bootstrap)
-- **Plugins**: `lua/tetravim/plugins/` (Lazy.nvim plugin specifications)
-- **JVM Utilities**: `lua/tetravim/util/jvm.lua`, `lua/tetravim/util/spring.lua`, `lua/tetravim/util/spring-picker.lua`, `lua/tetravim/util/refactor.lua`, `lua/tetravim/util/extract.lua`, `lua/tetravim/util/db.lua`, `lua/tetravim/util/http.lua`, `lua/tetravim/util/openapi.lua`, `lua/tetravim/util/git.lua`, `lua/tetravim/util/forge.lua`, `lua/tetravim/util/sonar.lua`, `lua/tetravim/util/cve.lua`
+- **Core Bootstrap (`lua/tetravim/core/`)**:
+  - `options.lua`: Editor options, global flags, headless mode bridge (`TETRAVIM_HEADLESS=1` → `g:tetravim_headless`).
+  - `keymaps.lua`: Global keymap registration (`<leader>c` code/LSP, `<leader>w` windows, `<leader>a` API/data, `<leader>x` quality/security).
+  - `lang-keymaps.lua`: Buffer-local language-specific keybindings, registered per-filetype.
+  - `autocmds.lua`: Auto-commands for terminal, formatting, and buffer behavior.
+  - `diagnostics.lua`: Native Neovim diagnostic display configuration.
+  - `health.lua`: Comprehensive healthcheck probes (`:checkhealth tetravim` and `:CheckHealthJson`).
+  - `lazy.lua`: Lazy.nvim plugin bootstrap and auto-importing.
+  - `devops.lua`: Infrastructure and cloud tooling keymaps (`<leader>o`).
+- **Plugins (`lua/tetravim/plugins/`)**:
+  - Modular lazy.nvim specifications (`lsp-*`, `tools-*`, `editor-*`, `ui-*`, `cloud-*`, `core-*`).
+- **JVM & Developer Utilities (`lua/tetravim/util/`)**:
+  - `jvm.lua`, `jvm_frameworks.lua`: JVM platform bindings, Spring Boot, Quarkus, and MicroProfile path resolvers.
+  - `spring.lua`, `spring-picker.lua`: Spring Boot discovery, Bean/Controller search, and navigation.
+  - `refactor.lua`, `extract.lua`: Safe rename/move refactoring, method/variable/interface extraction.
+  - `filetemplate.lua`: IDEA-style "New File from Template" generators.
+  - `db.lua`: Dadbod database explorer and automatic datasource discovery from Spring configuration.
+  - `http.lua`, `openapi.lua`, `grpc.lua`: Interactive HTTP client, OpenAPI spec explorer, and gRPC UI.
+  - `sonar.lua`, `cve.lua`: SonarLint/SonarQube diagnostics and OSV.dev dependency vulnerability scanner.
+  - `lsp_async.lua`, `lsp_resilience.lua`, `lsp_capabilities.lua`: UI non-blocking async LSP fan-out, memory bounds (`-Xmx2g`), crash auto-recovery, and unified completion capabilities.
+- **Theme (`lua/tetravim/theme/`, `colors/tetravim.lua`)**:
+  - `tetris.lua`: Canonical high-contrast dark palette and syntax highlight groups.
 
-## Enterprise Operability (Epic 5)
+---
 
-### Asynchronous LSP & Resilience (Story 5.1)
+## Keymap System
 
-- Project-wide LSP operations (e.g. the safe-rename reference scan) fan out through `tetravim.util.lsp_async.request_all_async`, which dispatches to every attached client and calls back on `vim.schedule` once the last response lands — the UI thread never blocks waiting on a server.
-- JDTLS is launched with a bounded JVM heap (`-Xmx2g` / `-Xms512m`, via `tetravim.util.lsp_resilience.apply_memory_limit`) so indexing a large monorepo cannot OOM the host.
-- If a language-server process crashes it is auto-restarted, bounded to 3 restarts per 180s. Exhausting that budget stops the retry loop and surfaces one error pointing at `:LspLog`. A clean re-attach resets the window.
-- `:checkhealth tetravim` → "Asynchronous LSP & Resilience (Story 5.1)".
+Keymaps are structured across four registration layers:
+1. **Global (`core/keymaps.lua`)**: Universal shortcuts for window navigation, code actions, diagnostics, search, and quality tools.
+2. **JVM Platform (`<leader>j`)**: Dedicated JVM build, test, and framework controls via `util/jvm.lua`.
+3. **DevOps / Cloud (`<leader>o`)**: Cloud and infrastructure controls via `core/devops.lua`.
+4. **Language-Scoped (`core/lang-keymaps.lua`)**: Installed dynamically per `FileType` so keymap groups only expose relevant actions for active buffers.
 
-### Headless Setup & Telemetry (Story 5.2)
+---
 
-`scripts/headless-setup.sh` provisions TetraVim non-interactively (Codespaces / Coder / CI images) — no UI, no TTY. It runs four steps: `Lazy! sync` (aborts the script on failure), `MasonToolsInstall` (logs a warning and continues), Tree-sitter parser install (logs a warning and continues), then a machine-readable health snapshot. It exports `TETRAVIM_HEADLESS=1`, which `tetravim.core.options` bridges to `g:tetravim_headless`. When a best-effort step is skipped the script still exits 0 but ends with a `DEGRADED` summary naming what did not install.
+## Enterprise Operability
 
-```sh
-./scripts/headless-setup.sh
-```
+### Asynchronous LSP & Resilience
+- **Non-blocking UI Operations**: Project-wide LSP operations (such as safe-rename reference scans) fan out through `tetravim.util.lsp_async.request_all_async`, dispatching to attached clients and scheduling callbacks without locking the Neovim UI thread.
+- **Bounded Heap Allocation**: JDTLS launches with bounded JVM heap limits (`-Xmx2g` / `-Xms512m` via `tetravim.util.lsp_resilience.apply_memory_limit`) to avoid host out-of-memory errors on large codebases.
+- **Crash Auto-Recovery**: Language server crashes trigger bounded auto-restarts (up to 3 attempts within 180 seconds). Exceeding this budget halts retries and surfaces actionable guidance to `:LspLog`.
+- **Health Verification**: Run `:checkhealth tetravim` to inspect LSP resilience status.
 
-The healthcheck is also available as machine-readable JSON for compliance gating — `:CheckHealthJson`, or `require('tetravim.core.health').json()` — emitting one JSON object with `neovim_version`, `lsp_clients`, `plugin_count`, `pending_async_tasks`, and `telemetry_enabled`.
+### Headless Setup & Telemetry
+- **Headless Provisioning**: `scripts/headless-setup.sh` provisions TetraVim in CI/CD, Dev Containers, GitHub Codespaces, or Coder environments non-interactively without requiring a TTY.
+  ```sh
+  ./scripts/headless-setup.sh
+  ```
+- **Machine-Readable Health Snapshot**: For CI compliance gates, `:CheckHealthJson` (or `require('tetravim.core.health').json()`) emits JSON with editor metadata, LSP client states, and plugin counts.
+- **Local-Only Telemetry**: Opt-in diagnostic logging:
+  - `:TetraVimTelemetryEnable`: Enables JSON logging to `telemetry.log` in the configuration root.
+  - `:TetraVimTelemetryDisable`: Disables telemetry logging.
+  - Logs are local, git-ignored, and automatically rotate at ~1 MiB.
 
-Telemetry is opt-in and local-only. Toggle it with:
+---
 
-- `:TetraVimTelemetryEnable` – enable telemetry logging to `telemetry.log` in your config directory.
-- `:TetraVimTelemetryDisable` – disable telemetry.
+## Code Quality & Security
 
-Each line is one JSON object (`timestamp`, `level`, `msg`, `source`). TetraVim's primary notifier (`tetravim.util.ui`) delegates to `tetravim.util.notify`, so subsystem notifications routed through it are captured while telemetry is enabled. Nothing is written while the flag is unset, `telemetry.log` is git-ignored, and it rolls over to a single `.1` backup once it passes ~1 MiB.
+### SonarQube & SonarLint
+- Integrated with `sonarlint-language-server` via Mason for Java, Kotlin, and Scala buffers.
+- Discovers `sonar-project.properties` hierarchically and connects with SonarQube servers when configured.
+- Dedicated `<leader>x` keymap group:
+  - `<leader>xsb`: Show Sonar rule description for issue under cursor.
+  - `<leader>xsp`: Trigger project-wide Sonar scan into the quickfix list.
 
-## Code Quality & Security (Epic 6)
+### Vulnerability & CVE Scanning
+- Powered by `osv-scanner` (OSV.dev vulnerability feeds) for Maven (`pom.xml`) and Gradle build descriptors.
+- Generates inline `WARN` diagnostics identifying CVE advisories and recommending remediation version upgrades.
+- Actions:
+  - `<leader>xvb`: Scan open build file for dependency CVEs.
+  - `<leader>xvp`: Scan entire project recursively and display findings in a split view.
+  - `<leader>xvc`: Clear CVE diagnostics from the current buffer.
 
-The `<leader>x` group ("quality/security") wires two capabilities for JVM projects. Run `:WhichKey <leader>x` for the full, current keymap list.
+---
 
-### SonarQube / SonarLint (Story 6.1)
+## Documentation Directory
 
-The `sonarlint-language-server` Mason package (with its bundled analyzer jars) attaches to Java/Kotlin/Scala buffers via `sonarlint.nvim`, surfacing Sonar rule violations as LSP diagnostics. When a `sonar-project.properties` file is found (searched upward from the buffer), its settings (`sonar.projectKey`, quality-profile hints) are forwarded to the language server. Scala rules require SonarQube connected mode.
-
-The `<leader>x` group is organised by feature type, and within each type the
-lowercase key acts on the current buffer while the `p`/uppercase key acts on the
-whole project:
-
-| Type | Buffer | Project |
-| --- | --- | --- |
-| Diagnostics | `<leader>xdb` line float | `<leader>xdp` all diagnostics → quickfix |
-| Lint | `<leader>xlb` check · `<leader>xlf` autofix (writes file) | `<leader>xlp` check · `<leader>xlF` autofix |
-| Sonar | `<leader>xsb` rule description under cursor | `<leader>xsp` whole-codebase scan |
-| CVE | `<leader>xvb` scan open build file · `<leader>xvc` clear | `<leader>xvp` scan whole project |
-
-`<leader>xsp` auto-selects `sonar-scanner` connected mode when a `sonar-project.properties` declares `sonar.host.url` and the CLI is installed, otherwise a server-free SonarLint sweep of every Java/Kotlin/Scala source into the quickfix list.
-
-### Vulnerability / CVE Scanning (Story 6.2)
-
-`<leader>xvb` runs `osv-scanner` (OSV.dev advisory feeds) asynchronously against the open `pom.xml` / `*.gradle` build script and publishes WARN diagnostics on each vulnerable dependency line, with a remediation hint naming the advisory ids and the version(s) to upgrade to. `<leader>xvp` runs `osv-scanner -r` over the whole project tree and renders the findings in a persistent split. `<leader>xvc` clears the CVE diagnostics for the buffer.
-
-Both tools are optional: `:checkhealth tetravim` reports their availability, `bootstrap.sh` offers to install `osv-scanner`, and every code path degrades to a single notification when a binary or plugin is missing.
-
-## Core Documentation References
-
-- **Agent Guidelines & Policy**: [`AGENTS.md`](../AGENTS.md)
 - **Installation Guide**: [`INSTALL.md`](../INSTALL.md)
-- **Quickstart & Commands**: [`README.md`](../README.md)
-- **Architecture Specification**: [`_bmad-output/planning-artifacts/architecture/architecture-tetravim.nvim-2026-08-25/ARCHITECTURE-SPINE.md`](../_bmad-output/planning-artifacts/architecture/architecture-tetravim.nvim-2026-08-25/ARCHITECTURE-SPINE.md)
-- **Features Specification**: [`_bmad-output/planning-artifacts/FEATURES_SPEC.md`](../_bmad-output/planning-artifacts/FEATURES_SPEC.md)
-- **Epics & Stories Breakdown**: [`_bmad-output/planning-artifacts/epics.md`](../_bmad-output/planning-artifacts/epics.md)
-- **Sprint Status**: [`_bmad-output/implementation-artifacts/sprint-status.yaml`](../_bmad-output/implementation-artifacts/sprint-status.yaml)
+- **Quickstart & README**: [`README.md`](../README.md)
+- **Developer Guidelines & Guide**: [`CLAUDE.md`](../CLAUDE.md)
+- **IntelliJ Parity Matrix**: [`ide-parity.md`](ide-parity.md)
+- **Scripts & Verification Suites**: [`scripts/README.md`](../scripts/README.md)
+- **License**: [`LICENSE`](../LICENSE) (Dual-licensed under MIT and BSD 2-Clause)
