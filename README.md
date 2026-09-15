@@ -111,6 +111,12 @@ For in-depth architecture details, subsystem test suites, and the full IntelliJ 
 
 ---
 
+## Contributing
+
+Contributions are welcome! Please ensure that all interactions and contributions adhere to our [Code of Conduct](CODE_OF_CONDUCT.md).
+
+---
+
 ## License
 
 This project is distributed solely under the [GNU General Public License v3.0 (GPL-3.0)](LICENSE). See [LICENSE](LICENSE) for details.

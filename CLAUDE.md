@@ -70,6 +70,7 @@ file returns a lazy.nvim spec (single spec table or a list of them). `defaults.l
 | `lua/tetravim/tests/` | `*_spec.lua` plenary busted specs |
 | `ftplugin/*.lua` | Per-filetype auto-launchers (notably `java.lua` starting `nvim-jdtls`) |
 | `bootstrap.sh` | Full dependency installer and bootstrap script |
+| `CODE_OF_CONDUCT.md` | Contributor Covenant Code of Conduct (v2.0) |
 | `docs/README.md` | Project documentation and architecture overview |
 
 ### Keymap system

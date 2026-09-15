@@ -20,6 +20,8 @@ Welcome to the **TetraVim** technical reference manual. This document consolidat
 | `colors/tetravim.lua` | `:colorscheme tetravim` entry point. |
 | `ftplugin/*.lua` | Buffer-local filetype hooks (notably `java.lua` starting `nvim-jdtls`). |
 | `bootstrap.sh` | Interactive installer for dependencies, toolchains, and environment bootstrap. |
+| `CODE_OF_CONDUCT.md` | Contributor Covenant Code of Conduct (v2.0). |
+| `docs/README.md` | Technical reference manual and architecture documentation. |
 
 ---
 
@@ -170,6 +172,12 @@ What IntelliJ IDEA Ultimate supports out of the box, and how TetraVim covers it 
 
 ---
 
-## 7. License
+## 7. Contributing & Code of Conduct
+
+Contributions are welcome! Please ensure that all contributions, discussions, and interactions adhere to our [Code of Conduct](../CODE_OF_CONDUCT.md).
+
+---
+
+## 8. License
 
 This project is distributed solely under the [GNU General Public License v3.0 (GPL-3.0)](../LICENSE). See [LICENSE](../LICENSE) for details.
