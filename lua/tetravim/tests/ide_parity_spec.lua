@@ -3,7 +3,7 @@
 -- Keeps the three IDE-parity lists from drifting apart:
 --   * lua/tetravim/health.lua  -- "IDE-Parity Language Servers" probe (bins on $PATH)
 --   * lua/tetravim/plugins/tools-mason.lua -- ensure_installed (Mason package names)
---   * docs/ide-parity.md       -- the human-facing map
+--   * docs/README.md           -- the human-facing map
 --
 -- health.lua promises "run :MasonToolsInstall and this server appears". If a
 -- probed binary has no corresponding Mason package in ensure_installed, that
@@ -90,8 +90,8 @@ describe("IDE-parity server lists stay in sync", function()
     assert.are.equal(0, #gone, "packages dropped from ensure_installed:\n  " .. table.concat(gone, "\n  "))
   end)
 
-  it("docs/ide-parity.md exists and references the healthcheck section", function()
-    local doc = read("docs/ide-parity.md")
+  it("docs/README.md exists and references the healthcheck section", function()
+    local doc = read("docs/README.md")
     assert.is_truthy(doc:find("IDE-Parity Language Servers", 1, true), "doc no longer points at the health section")
   end)
 end)

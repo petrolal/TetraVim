@@ -249,7 +249,11 @@ if not ok then io.stderr:write('FAIL: ' .. tostring(err) .. '\n'); vim.cmd('cqui
   it("[2/7] :checkhealth tetravim reports the Advanced Git Conflict Resolution section", function()
     local code = [==[
 local ok, err = pcall(function()
-  local out = table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), '\n')
+  local out = ""
+  for _, b in ipairs(vim.api.nvim_list_bufs()) do
+    local lines = vim.api.nvim_buf_get_lines(b, 0, -1, false)
+    out = out .. "\n" .. table.concat(lines, "\n")
+  end
   assert(out:find('Advanced Git Conflict Resolution', 1, true), 'health section header missing')
   assert(out:lower():find('diffview', 1, true), 'health section does not mention diffview.nvim')
   assert(out:lower():find('git:', 1, true), 'health section does not report on the git binary')
@@ -347,7 +351,12 @@ if not ok then io.stderr:write('FAIL: ' .. tostring(err) .. '\n'); vim.cmd('cqui
       "vim.fn.executable = (function(o) return function(n) if n == 'git' then return 0 end return o(n) end end)(vim.fn.executable)"
     local code = [==[
 local ok, err = pcall(function()
-  local out = table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), '\n'):lower()
+  local out = ""
+  for _, b in ipairs(vim.api.nvim_list_bufs()) do
+    local lines = vim.api.nvim_buf_get_lines(b, 0, -1, false)
+    out = out .. "\n" .. table.concat(lines, "\n")
+  end
+  out = out:lower()
   assert(out:find('advanced git conflict resolution', 1, true), 'health section missing')
   assert(out:match('git:[^\n]*not found'), 'health must report git as NOT found when unavailable')
 end)

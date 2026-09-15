@@ -163,7 +163,7 @@ function M.check()
   -- Executable names as exposed on $PATH once Mason installs each package
   -- (mason.nvim prepends ~/.local/share/nvim/mason/bin). mason-tool-installer
   -- fetches all of these on VimEnter, so a miss here is normal on a cold
-  -- checkout -- hence info, not warn. See docs/ide-parity.md for the full map.
+  -- checkout -- hence info, not warn. See docs/README.md for the full map.
   local parity_servers = {
     { bin = "basedpyright-langserver", desc = "Python type checker LSP (IDEA 'Python')" },
     { bin = "ruff", desc = "Python lint + format LSP (IDEA 'Python')" },
@@ -193,7 +193,7 @@ function M.check()
 
   -- Pure-Lua/Vimscript plugins fetched by lazy.nvim -- no external binary, so
   -- the probe is just "did the module load". A miss means `:Lazy sync` has
-  -- not run yet. See docs/ide-parity.md ("Editor / IDE tool windows").
+  -- not run yet. See docs/README.md ("Editor / IDE tool windows").
   local editor_plugins = {
     { mod = "overseer", desc = "Generic task runner (IDEA 'Run Anything' / Run Configurations) -- <leader>r" },
     { mod = "todo-comments", desc = "TODO / FIXME scanner + list (IDEA 'TODO' tool window) -- ]t / <leader>xt" },

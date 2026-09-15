@@ -169,6 +169,12 @@ What IntelliJ IDEA Ultimate supports out of the box, and how TetraVim covers it 
 | Decompiler (source-less `.class` files) | Full | `gd` (`vscode-java-decompiler` bundled in jdtls) |
 | npm dependency version inlays (`package.json`) | Full | `<leader>cn*` (`lang-npm.lua` → package-info.nvim) |
 | Run with Coverage | Full | `<leader>jc*` (native `tetravim.util.coverage` JaCoCo XML overlay) |
+| Endpoints tool window (project HTTP endpoint list) | Full | `tetravim.util.clients.endpoints_panel`, `<leader>ae` |
+| Docker tool window (container & runtime dashboard) | Full | `tetravim.util.cloud.docker`, `<leader>odd` |
+| Kubernetes tool window (cluster resource explorer) | Full | `tetravim.util.cloud.k8s`, `<leader>oke` |
+
+Verify with `:checkhealth tetravim` → *IDE-Parity Language Servers* section.
+
 
 ---
 

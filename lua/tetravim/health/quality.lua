@@ -278,7 +278,7 @@ function M.check()
 
   -- No OSS language server or Tree-sitter grammar exists for any of these three;
   -- TetraVim covers them with filetype detection, a bundled/hand-rolled syntax
-  -- layer, ftplugin conventions and emmet. See docs/ide-parity.md
+  -- layer, ftplugin conventions and emmet. See docs/README.md
   -- ("Template engines").
   for _, t in ipairs({
     { file = "x.ftl", want = "freemarker" },
