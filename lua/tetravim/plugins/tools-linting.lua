@@ -29,7 +29,7 @@ return {
         java = { "checkstyle" },
         scala = { "scalastyle" },
         sbt = { "scalastyle" },
-        -- IntelliJ IDEA Ultimate parity (see docs/ide-parity.md)
+        -- IntelliJ IDEA Ultimate parity (see docs/README.md)
         python = { "ruff" },
         htmldjango = { "djlint" },
       }

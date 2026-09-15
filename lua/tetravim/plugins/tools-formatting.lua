@@ -25,7 +25,7 @@ return {
         typescriptreact = { "prettier", stop_after_first = true },
         proto = { "buf" },
         toml = { "taplo" },
-        -- IntelliJ IDEA Ultimate parity (see docs/ide-parity.md)
+        -- IntelliJ IDEA Ultimate parity (see docs/README.md)
         python = { "ruff_organize_imports", "ruff_format" },
         vue = { "prettier", stop_after_first = true },
         svelte = { "prettier", stop_after_first = true },

@@ -48,7 +48,7 @@ local ensure_installed = {
   "protols",
   "sonarlint-language-server",
 
-  -- IntelliJ IDEA Ultimate language/framework parity (see docs/ide-parity.md).
+  -- IntelliJ IDEA Ultimate language/framework parity (see docs/README.md).
   -- Python (bundled "Python" plugin): type checker + linter/formatter LSP.
   "basedpyright",
   "ruff",
