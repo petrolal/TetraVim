@@ -10,7 +10,6 @@
   ╰────────────────────────────────────────────────╯  
   </pre>
 </div>
-<h1 align="center">JVM & CLOUD-NATIVE ECOSYSTEM</h1>
 
 <h4 align="center">
   <a href="#-installation">Install</a>
