@@ -11,6 +11,8 @@
   </pre>
 </div>
 
+---
+
 <h4 align="center">
   <a href="#-installation">Install</a>
   ·
