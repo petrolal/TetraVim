@@ -8,10 +8,9 @@
   │      ██  \___|  \__ | |  \__,_| \__/ ██ ██     │  
   │                                                │  
   ╰────────────────────────────────────────────────╯  
-               JVM & CLOUD-NATIVE ECOSYSTEM
   </pre>
 </div>
-<h1 align="center">TetraVim</h1>
+<h1 align="center">JVM & CLOUD-NATIVE ECOSYSTEM</h1>
 
 <h4 align="center">
   <a href="#-installation">Install</a>
@@ -47,13 +46,10 @@
 
 ## 🌟 Preview
 
-### 🚀 Dashboard & Overview
 ![TetraVim Dashboard](docs/screenshots/dashboard.png)
 
-### ☕ Spring Boot & JVM Intelligence
 ![Spring Boot & LSP Intelligence](docs/screenshots/bean.png)
 
-### 📂 File Management with Oil
 ![Oil File Management](docs/screenshots/oil.png)
 
 ## ✨ Features
@@ -90,7 +86,7 @@
 
 - [Neovim ≥ 0.11](https://github.com/neovim/neovim/releases/tag/stable) <sup>[[1]](#1)</sup>
 - [Java JDK ≥ 17](https://adoptium.net/) (Required for JDTLS, Metals, Kotlin LS; Java 21+ supported) <sup>[[2]](#2)</sup>
-- [Nerd Fonts (v3.0+)](https://www.nerdfonts.com/font-downloads) (e.g. *JetBrainsMono Nerd Font*) <sup>[[3]](#3)</sup>
+- [Nerd Fonts (v3.0+)](https://www.nerdfonts.com/font-downloads) (e.g. _JetBrainsMono Nerd Font_) <sup>[[3]](#3)</sup>
 - [ripgrep](https://github.com/BurntSushi/ripgrep) and [fd](https://github.com/sharkdp/fd) (for live grep and picker search)
 - A C compiler (`gcc`, `clang`, or `cc`) & `make` (for Tree-sitter parsers and telescope-fzf-native)
 - [Git](https://git-scm.com/) (for plugin management via `lazy.nvim`)
@@ -183,20 +179,20 @@ nvim --headless -u ~/.config/nvim/init.lua -c "lua require('TetraVim.core.setup'
 
 `<leader>` is mapped to `Space`, `<localleader>` to `\`.
 
-| Keys | Description |
-| --- | --- |
-| `<leader>c` | Code & LSP actions (definition, references, rename, format, codelens) |
-| `<leader>j` | JVM platform controls (Spring beans, endpoints, build sync, test coverage) |
-| `<leader>o` | DevOps & Cloud actions (Terraform, Docker, Kubernetes, Ansible) |
-| `<leader>a` | API & Data tools (`<leader>ah` HTTP client, `<leader>ag` gRPC, `<leader>ad` DB explorer) |
-| `<leader>x` | Code quality & security (`<leader>xs` Sonar, `<leader>xv` CVE audit, `<leader>xt` Todo) |
-| `<leader>r` | Task runner & Overseer commands |
-| `<leader>e` | Open file explorer ([Oil.nvim](https://github.com/stevearc/oil.nvim)) |
-| `<leader>s` | Search & Pickers (files, live grep, buffers, symbols, marks) |
-| `<leader>ut` | Toggle background transparency |
-| `<leader>cb` | Open winbar breadcrumb symbol picker |
-| `[d` / `]d` | Jump to previous / next diagnostic |
-| `[e` / `]e` | Jump to previous / next error |
+| Keys         | Description                                                                              |
+| ------------ | ---------------------------------------------------------------------------------------- |
+| `<leader>c`  | Code & LSP actions (definition, references, rename, format, codelens)                    |
+| `<leader>j`  | JVM platform controls (Spring beans, endpoints, build sync, test coverage)               |
+| `<leader>o`  | DevOps & Cloud actions (Terraform, Docker, Kubernetes, Ansible)                          |
+| `<leader>a`  | API & Data tools (`<leader>ah` HTTP client, `<leader>ag` gRPC, `<leader>ad` DB explorer) |
+| `<leader>x`  | Code quality & security (`<leader>xs` Sonar, `<leader>xv` CVE audit, `<leader>xt` Todo)  |
+| `<leader>r`  | Task runner & Overseer commands                                                          |
+| `<leader>e`  | Open file explorer ([Oil.nvim](https://github.com/stevearc/oil.nvim))                    |
+| `<leader>s`  | Search & Pickers (files, live grep, buffers, symbols, marks)                             |
+| `<leader>ut` | Toggle background transparency                                                           |
+| `<leader>cb` | Open winbar breadcrumb symbol picker                                                     |
+| `[d` / `]d`  | Jump to previous / next diagnostic                                                       |
+| `[e` / `]e`  | Jump to previous / next error                                                            |
 
 ## 🗒️ Links
 
