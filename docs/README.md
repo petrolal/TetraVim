@@ -1,23 +1,23 @@
 # TetraVim Technical Reference & Architecture Guide
 
-Welcome to the **TetraVim** technical reference manual. This document consolidates the architectural specifications, enterprise operability features, test verification suites, and the IntelliJ IDEA parity matrix for `tetravim.nvim`.
+Welcome to the **TetraVim** technical reference manual. This document consolidates the architectural specifications, enterprise operability features, test verification suites, and the IntelliJ IDEA parity matrix for `TetraVim`.
 
 ---
 
 ## 1. Architecture & Directory Layout
 
-`tetravim.nvim` is a pure native Neovim distribution for modern JVM backend engineering and Cloud Native development. It relies entirely on standard Neovim LSPs, Tree-sitter, Mason packages, `nvim-dap`, and modular Lua utilities without any external companion daemon or custom runtime bridge.
+`TetraVim` is a pure native Neovim distribution for modern JVM backend engineering and Cloud Native development. It relies entirely on standard Neovim LSPs, Tree-sitter, Mason packages, `nvim-dap`, and modular Lua utilities without any external companion daemon or custom runtime bridge.
 
 ### Directory Structure
 
 | Path | Purpose |
 | --- | --- |
-| `lua/tetravim/core/` | Bootstrap & core runtime (`options`, `keymaps`, `lang-keymaps`, `autocmds`, `diagnostics`, `health`, `lazy`, `devops`). |
-| `lua/tetravim/plugins/` | Lazy.nvim plugin specifications (`lsp-*`, `tools-*`, `editor-*`, `ui-*`, `cloud-*`, `core-*`). |
-| `lua/tetravim/util/` | Pure Lua business logic and utility modules (`jvm`, `spring`, `refactor`, `extract`, `filetemplate`, `db`, `http`, `grpc`, `sonar`, `cve`, `lsp_async`, `lsp_resilience`, `lsp_capabilities`, `coverage`, `git`). |
-| `lua/tetravim/theme/` | High-contrast dark palette (`tetris.lua`) and theme management (`init.lua`). |
-| `lua/tetravim/tests/` | Plenary Busted unit, integration, and subsystem test specs. |
-| `colors/tetravim.lua` | `:colorscheme tetravim` entry point. |
+| `lua/TetraVim/core/` | Bootstrap & core runtime (`options`, `keymaps`, `lang-keymaps`, `autocmds`, `diagnostics`, `health`, `lazy`, `devops`). |
+| `lua/TetraVim/plugins/` | Lazy.nvim plugin specifications (`lsp-*`, `tools-*`, `editor-*`, `ui-*`, `cloud-*`, `core-*`). |
+| `lua/TetraVim/util/` | Pure Lua business logic and utility modules (`jvm`, `spring`, `refactor`, `extract`, `filetemplate`, `db`, `http`, `grpc`, `sonar`, `cve`, `lsp_async`, `lsp_resilience`, `lsp_capabilities`, `coverage`, `git`). |
+| `lua/TetraVim/theme/` | High-contrast dark palette (`tetris.lua`) and theme management (`init.lua`). |
+| `lua/TetraVim/tests/` | Plenary Busted unit, integration, and subsystem test specs. |
+| `colors/TetraVim.lua` | `:colorscheme TetraVim` entry point. |
 | `ftplugin/*.lua` | Buffer-local filetype hooks (notably `java.lua` starting `nvim-jdtls`). |
 | `bootstrap.sh` | Interactive installer for dependencies, toolchains, and environment bootstrap. |
 | `CODE_OF_CONDUCT.md` | Contributor Covenant Code of Conduct (v2.0). |
@@ -38,14 +38,14 @@ Keymaps are structured across four registration layers:
 ## 3. Enterprise Operability
 
 ### Asynchronous LSP & Resilience
-- **Non-blocking Dispatch**: Project-wide operations (such as safe-rename reference scans) fan out through `tetravim.util.lsp_async.request_all_async`, dispatching across all attached clients and invoking callbacks on `vim.schedule` without stalling the editor UI thread.
-- **Bounded JVM Heap**: JDTLS launches with bounded memory limits (`-Xmx2g` / `-Xms512m` via `tetravim.util.lsp_resilience.apply_memory_limit`) to avoid host out-of-memory errors on massive repositories.
+- **Non-blocking Dispatch**: Project-wide operations (such as safe-rename reference scans) fan out through `TetraVim.util.lsp_async.request_all_async`, dispatching across all attached clients and invoking callbacks on `vim.schedule` without stalling the editor UI thread.
+- **Bounded JVM Heap**: JDTLS launches with bounded memory limits (`-Xmx2g` / `-Xms512m` via `TetraVim.util.lsp_resilience.apply_memory_limit`) to avoid host out-of-memory errors on massive repositories.
 - **Crash Auto-Recovery**: Language server crashes trigger bounded restarts (up to 3 attempts within 180 seconds). Exceeding this budget halts retries and surfaces actionable guidance pointing to `:LspLog`.
-- **Health Probes**: Run `:checkhealth tetravim` to inspect LSP resilience status and external dependencies.
+- **Health Probes**: Run `:checkhealth TetraVim` to inspect LSP resilience status and external dependencies.
 
 ### Headless Setup & Telemetry
-- **Headless Provisioning**: `nvim --headless -u init.lua -c "lua require('tetravim.core.setup').run()" -c "qa!"` provisions TetraVim in CI/CD, Dev Containers, GitHub Codespaces, or Coder environments non-interactively.
-- **Machine-Readable Health Snapshot**: For CI compliance gates, `:CheckHealthJson` (or `require('tetravim.core.health_json').json()`) emits JSON with editor metadata, LSP client states, and plugin counts.
+- **Headless Provisioning**: `nvim --headless -u init.lua -c "lua require('TetraVim.core.setup').run()" -c "qa!"` provisions TetraVim in CI/CD, Dev Containers, GitHub Codespaces, or Coder environments non-interactively.
+- **Machine-Readable Health Snapshot**: For CI compliance gates, `:CheckHealthJson` (or `require('TetraVim.core.health_json').json()`) emits JSON with editor metadata, LSP client states, and plugin counts.
 - **Local-Only Telemetry**: Opt-in diagnostic logging:
   - `:TetraVimTelemetryEnable`: Enables JSON logging to `telemetry.log` in the configuration root.
   - `:TetraVimTelemetryDisable`: Disables telemetry logging.
@@ -80,7 +80,7 @@ TetraVim provides native automated provisioning and a comprehensive Plenary Bust
 | Command / Entry Point | Purpose |
 | --- | --- |
 | `bash bootstrap.sh` | Interactive installer that verifies dependencies, syncs Lazy plugins, fetches JVM extensions, and runs health checks. |
-| `nvim --headless -u init.lua -c "lua require('tetravim.core.setup').run()" -c "qa!"` | Native non-interactive provisioning pipeline (Lazy sync, Mason tool-chain, JVM LSP jars, Tree-sitter parsers, health snapshot). |
+| `nvim --headless -u init.lua -c "lua require('TetraVim.core.setup').run()" -c "qa!"` | Native non-interactive provisioning pipeline (Lazy sync, Mason tool-chain, JVM LSP jars, Tree-sitter parsers, health snapshot). |
 | `:TetraVimSetup` | In-editor interactive command triggering the full provisioning and dependency update pipeline. |
 
 ### Subsystem Verification Suites
@@ -88,12 +88,12 @@ Run tests via headless Plenary Busted:
 
 | Target | Command | Subsystems Covered |
 | --- | --- | --- |
-| **Full Test Suite** | `nvim --headless -u init.lua -c "Lazy! load plenary.nvim" -c "PlenaryBustedDirectory lua/tetravim/tests/" -c "qa"` | All 40+ unit, integration, and architecture specs |
-| **Smoke Suite** | `nvim --headless -u init.lua -c "Lazy! load plenary.nvim" -c "PlenaryBustedFile lua/tetravim/tests/smoke_spec.lua" -c "qa"` | Fast sanity check of core modules and load order |
-| **JVM Platform** | `nvim --headless -u init.lua -c "Lazy! load plenary.nvim" -c "PlenaryBustedFile lua/tetravim/tests/jvm_test_spec.lua" -c "qa"` | Maven/Gradle builds, Spring Boot discovery, DAP debugging, JaCoCo coverage |
-| **DevOps Suite** | `nvim --headless -u init.lua -c "Lazy! load plenary.nvim" -c "PlenaryBustedFile lua/tetravim/tests/devops_validation_spec.lua" -c "qa"` | Terraform, Docker, Kubernetes/Helm, Ansible workspace discovery & tool validation |
-| **LSP & Resilience** | `nvim --headless -u init.lua -c "Lazy! load plenary.nvim" -c "PlenaryBustedFile lua/tetravim/tests/lsp_resilience_spec.lua" -c "qa"` | Async dispatch, bounded memory limits, crash auto-recovery |
-| **Code Quality & Security** | `nvim --headless -u init.lua -c "Lazy! load plenary.nvim" -c "PlenaryBustedFile lua/tetravim/tests/sonar_spec.lua" -c "qa"` | SonarQube/SonarLint diagnostics and `osv-scanner` CVE audits |
+| **Full Test Suite** | `nvim --headless -u init.lua -c "Lazy! load plenary.nvim" -c "PlenaryBustedDirectory lua/TetraVim/tests/" -c "qa"` | All 40+ unit, integration, and architecture specs |
+| **Smoke Suite** | `nvim --headless -u init.lua -c "Lazy! load plenary.nvim" -c "PlenaryBustedFile lua/TetraVim/tests/smoke_spec.lua" -c "qa"` | Fast sanity check of core modules and load order |
+| **JVM Platform** | `nvim --headless -u init.lua -c "Lazy! load plenary.nvim" -c "PlenaryBustedFile lua/TetraVim/tests/jvm_test_spec.lua" -c "qa"` | Maven/Gradle builds, Spring Boot discovery, DAP debugging, JaCoCo coverage |
+| **DevOps Suite** | `nvim --headless -u init.lua -c "Lazy! load plenary.nvim" -c "PlenaryBustedFile lua/TetraVim/tests/devops_validation_spec.lua" -c "qa"` | Terraform, Docker, Kubernetes/Helm, Ansible workspace discovery & tool validation |
+| **LSP & Resilience** | `nvim --headless -u init.lua -c "Lazy! load plenary.nvim" -c "PlenaryBustedFile lua/TetraVim/tests/lsp_resilience_spec.lua" -c "qa"` | Async dispatch, bounded memory limits, crash auto-recovery |
+| **Code Quality & Security** | `nvim --headless -u init.lua -c "Lazy! load plenary.nvim" -c "PlenaryBustedFile lua/TetraVim/tests/sonar_spec.lua" -c "qa"` | SonarQube/SonarLint diagnostics and `osv-scanner` CVE audits |
 | **Formatting & Linting** | `stylua --check . && bash -n bootstrap.sh` | Code style enforcement (2-space indent, 120 column) and shell script syntax validation |
 
 ---
@@ -132,7 +132,7 @@ What IntelliJ IDEA Ultimate supports out of the box, and how TetraVim covers it 
 ### Frameworks & Libraries
 | IDEA Bundles | TetraVim Coverage | Notes |
 | --- | :---: | --- |
-| Spring / Spring Boot / Data / Security / Batch | Full | Served by `jdtls` + `tetravim.util.spring*`; DAP via `ftplugin/java.lua` |
+| Spring / Spring Boot / Data / Security / Batch | Full | Served by `jdtls` + `TetraVim.util.spring*`; DAP via `ftplugin/java.lua` |
 | Jakarta EE / Java EE, Hibernate/JPA | Full | `jdtls` semantic model |
 | Micronaut / Quarkus / Ktor / Helidon | Full | `jdtls` / `kotlin_language_server` / `lsp-quarkus.lua` / `lsp4mp` |
 | JUnit / TestNG (JVM test UI) | Full | `tools-test.lua`, `neotest-java` |
@@ -148,9 +148,9 @@ What IntelliJ IDEA Ultimate supports out of the box, and how TetraVim covers it 
 | IDEA Feature | TetraVim Coverage | Keys / Tool |
 | --- | :---: | --- |
 | Database Connection Manager & Query Console | Full | `tools-dadbod.lua` (`vim-dadbod` + `vim-dadbod-ui`) |
-| Datasource Auto-discovery | Full | `tetravim.util.db` (auto-reads Spring `application.*`) |
+| Datasource Auto-discovery | Full | `TetraVim.util.db` (auto-reads Spring `application.*`) |
 | HTTP Client (`.http`) | Full | `tools-http.lua` (`kulala.nvim`), `<leader>ah` |
-| OpenAPI / Swagger Explorer | Full | `tetravim.util.openapi`, `<leader>ao` |
+| OpenAPI / Swagger Explorer | Full | `TetraVim.util.openapi`, `<leader>ao` |
 | gRPC UI & Client | Full | `grpcui.lua`, `<leader>ag` |
 | Docker / Compose Explorer | Full | `cloud-containers-k8s.lua`, `<leader>od` |
 | Kubernetes / Helm Management | Full | `cloud-containers-k8s.lua`, `<leader>ok` |
@@ -168,12 +168,12 @@ What IntelliJ IDEA Ultimate supports out of the box, and how TetraVim covers it 
 | Grazie (Grammar / Spell checking) | Full | `<leader>ca` (`lsp-markdown.lua` → `ltex-ls`) |
 | Decompiler (source-less `.class` files) | Full | `gd` (`vscode-java-decompiler` bundled in jdtls) |
 | npm dependency version inlays (`package.json`) | Full | `<leader>cn*` (`lang-npm.lua` → package-info.nvim) |
-| Run with Coverage | Full | `<leader>jc*` (native `tetravim.util.coverage` JaCoCo XML overlay) |
-| Endpoints tool window (project HTTP endpoint list) | Full | `tetravim.util.clients.endpoints_panel`, `<leader>ae` |
-| Docker tool window (container & runtime dashboard) | Full | `tetravim.util.cloud.docker`, `<leader>odd` |
-| Kubernetes tool window (cluster resource explorer) | Full | `tetravim.util.cloud.k8s`, `<leader>oke` |
+| Run with Coverage | Full | `<leader>jc*` (native `TetraVim.util.coverage` JaCoCo XML overlay) |
+| Endpoints tool window (project HTTP endpoint list) | Full | `TetraVim.util.clients.endpoints_panel`, `<leader>ae` |
+| Docker tool window (container & runtime dashboard) | Full | `TetraVim.util.cloud.docker`, `<leader>odd` |
+| Kubernetes tool window (cluster resource explorer) | Full | `TetraVim.util.cloud.k8s`, `<leader>oke` |
 
-Verify with `:checkhealth tetravim` → *IDE-Parity Language Servers* section.
+Verify with `:checkhealth TetraVim` → *IDE-Parity Language Servers* section.
 
 
 ---

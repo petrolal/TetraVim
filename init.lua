@@ -14,7 +14,7 @@ end
 -- and early with an actionable message instead.
 if vim.fn.has("nvim-0.11") == 0 then
   vim.api.nvim_echo({
-    { "tetravim.nvim requires Neovim >= 0.11\n", "ErrorMsg" },
+    { "TetraVim requires Neovim >= 0.11\n", "ErrorMsg" },
     { "Running: " .. tostring(vim.version()) .. "\n", "WarningMsg" },
   }, true, {})
   return
@@ -25,6 +25,6 @@ if not vim.tbl_contains(vim.opt.rtp:get(), config_dir) then
   vim.opt.rtp:prepend(config_dir)
 end
 
-require("tetravim.util.notify")
-require("tetravim.core")
-require("tetravim.core.lazy")
+require("TetraVim.util.notify")
+require("TetraVim.core")
+require("TetraVim.core.lazy")

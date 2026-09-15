@@ -1,0 +1,64 @@
+-- TetraVim Theme Loader
+-- ---------------------
+-- TetraVim ships a single, canonical colour scheme: the self-contained
+-- "Tetris" palette in `TetraVim.theme.tetris`. This module is the thin
+-- loader / persistence shim that the core bootstrap (`core/options.lua`)
+-- and the statusline integration (`plugins/ui-theme.lua`) call into.
+--
+-- History: this file was previously a multi-provider "Cloud Theme
+-- Switcher" that delegated to an external binary for AWS / Azure / GCP /
+-- OCI accent palettes (read from `~/.config/TetraVim/theme/state` +
+-- `palette.json`). That system, its provider tables and the `set_theme` /
+-- `select_theme` picker have been removed -- TetraVim now standardises
+-- strictly on the Tetris palette.
+
+local M = {}
+
+local ui = require("TetraVim.util.ui")
+
+--- Canonical colourscheme name. Kept as a function because call sites
+--- historically treated the return value as an opaque theme token; there
+--- is now exactly one value.
+---@return string
+function M.get_current_theme()
+  return "TetraVim"
+end
+
+--- Apply the canonical Tetris palette and refresh the derived UI colour
+--- cache consumed by lualine / bufferline.
+function M.apply()
+  local ok, tetris = pcall(require, "TetraVim.theme.tetris")
+  if not ok then
+    ui.notify_err("TetraVim.theme.tetris failed to load: " .. tostring(tetris))
+    return
+  end
+
+  tetris.apply()
+
+  local transparency_ok, transparency = pcall(require, "TetraVim.util.transparency")
+  if transparency_ok then
+    transparency.apply()
+  end
+
+  local colors_ok, theme_colors = pcall(require, "TetraVim.util.theme_colors")
+  if colors_ok then
+    -- Hand the freshly-applied highlight table to the derived-colour cache
+    -- as a module field (previously a `_G._TetraVim_current_highlights`
+    -- global) so `refresh_cache()` reads it back without touching `_G`.
+    theme_colors.current_highlights = tetris.highlights()
+    theme_colors.refresh_cache()
+  end
+end
+
+--- Bootstrap entry point (called from `core/options.lua` on startup).
+function M.load_saved_theme()
+  M.apply()
+end
+
+--- Compatibility shim for `require("TetraVim.theme").setup()` (used by the
+--- smoke-test script and any external caller). Any `opts` are ignored.
+function M.setup(_)
+  M.apply()
+end
+
+return M

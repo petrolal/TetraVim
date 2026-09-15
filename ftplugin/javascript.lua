@@ -2,7 +2,7 @@
 -- Sets buffer-local formatting and comment handling for JavaScript files
 
 -- Indentation: 2-space soft tabs
-require("tetravim.util.ftconv").soft_tabs()
+require("TetraVim.util.ftconv").soft_tabs()
 
 -- Comment formatting: // ... and /* ... */
 vim.bo.commentstring = "// %s"

@@ -31,7 +31,7 @@ Thumbs.db
 luac.out
 *.luac
 
-# Story 5.2: opt-in telemetry export sink (written by tetravim.util.notify)
+# Story 5.2: opt-in telemetry export sink (written by TetraVim.util.notify)
 telemetry.log
 
 # Ensure BMAD and AI agent artifacts are strictly tracked 

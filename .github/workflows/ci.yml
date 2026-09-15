@@ -1,8 +1,8 @@
 name: CI
 
 # Runs the validation apparatus that already lives in this repo -- stylua,
-# shell-syntax checks, the plenary busted suite (lua/tetravim/tests/) and the
-# native headless provisioning smoke (tetravim.core.setup) -- on every push to
+# shell-syntax checks, the plenary busted suite (lua/TetraVim/tests/) and the
+# native headless provisioning smoke (TetraVim.core.setup) -- on every push to
 # main and every PR, so a regression is caught here instead of at the next
 # clone.
 
@@ -51,7 +51,7 @@ jobs:
           shellcheck -S warning bootstrap.sh install.sh || true
 
   # --------------------------------------------------------------------------
-  # The plenary busted spec suite (lua/tetravim/tests/*_spec.lua). "stable" is
+  # The plenary busted spec suite (lua/TetraVim/tests/*_spec.lua). "stable" is
   # the gate; "nightly" is an early-warning canary and is allowed to fail.
   # --------------------------------------------------------------------------
   test:
@@ -104,7 +104,7 @@ jobs:
           set -o pipefail
           nvim --headless -u init.lua \
             -c "Lazy! load plenary.nvim" \
-            -c "PlenaryBustedDirectory lua/tetravim/tests/" \
+            -c "PlenaryBustedDirectory lua/TetraVim/tests/" \
             -c "qa" 2>&1 | sed -r 's/\x1b\[[0-9;]*m//g' | tee busted.log
 
           # PlenaryBustedDirectory's headless exit code is unreliable across
@@ -130,7 +130,7 @@ jobs:
           if-no-files-found: ignore
 
   # --------------------------------------------------------------------------
-  # Native headless setup & provisioning smoke test (tetravim.core.setup)
+  # Native headless setup & provisioning smoke test (TetraVim.core.setup)
   # --------------------------------------------------------------------------
   smoke:
     name: Native Setup & Provisioning Smoke
@@ -162,11 +162,11 @@ jobs:
       - name: Install tree-sitter CLI
         run: npm install -g tree-sitter-cli
 
-      - name: Native headless provisioning (tetravim.core.setup)
-        run: nvim --headless -u init.lua -c "lua require('tetravim.core.setup').run()" -c "qa!"
+      - name: Native headless provisioning (TetraVim.core.setup)
+        run: nvim --headless -u init.lua -c "lua require('TetraVim.core.setup').run()" -c "qa!"
 
       - name: Verify health snapshot
-        run: nvim --headless -u init.lua -c "lua io.write(require('tetravim.core.health').json() .. '\n')" -c "qa!"
+        run: nvim --headless -u init.lua -c "lua io.write(require('TetraVim.core.health').json() .. '\n')" -c "qa!"
 
       # --------------------------------------------------------------------
       # Startup-time budget. `defaults.lazy = false`, so every plugin loads

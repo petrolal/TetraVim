@@ -28,13 +28,13 @@ echo "   TetraVim Neovim: Full Bootstrap               "
 echo "=================================================="
 
 # ============================================================================
-# 0a. Canonical install location — the repo must live at ~/tetravim.nvim, with
+# 0a. Canonical install location — the repo must live at ~/TetraVim, with
 #     ~/.config/nvim symlinked to it. A clone anywhere else relocates itself
 #     here on first run so this is the only installation layout to support.
 # ============================================================================
 section "Canonical install location"
 
-TETRAVIM_HOME="$HOME/tetravim.nvim"
+TETRAVIM_HOME="$HOME/TetraVim"
 TETRAVIM_HOME_REAL=""
 [ -e "$TETRAVIM_HOME" ] && TETRAVIM_HOME_REAL="$(cd -P "$TETRAVIM_HOME" && pwd)"
 
@@ -133,7 +133,7 @@ mkdir -p "$(dirname "$NVIM_CONFIG")"
 ln -sf "$REPO_DIR" "$NVIM_CONFIG"
 pass "Config linked: $NVIM_CONFIG -> $REPO_DIR"
 
-if nvim --headless -u "$NVIM_CONFIG/init.lua" -c "lua require('tetravim.core.setup').run()" -c "qa!" 2>/dev/null; then
+if nvim --headless -u "$NVIM_CONFIG/init.lua" -c "lua require('TetraVim.core.setup').run()" -c "qa!" 2>/dev/null; then
 	pass "TetraVim native setup complete (plugins synced, Mason tools, LSP jars, Tree-sitter parsers)"
 else
 	warn "TetraVim setup had warnings -- run :TetraVimSetup inside nvim to inspect"
@@ -482,7 +482,7 @@ if ! ap_present; then
 			ap_tarball="async-profiler-${AP_VERSION}-${ap_os}-${ap_arch}.tar.gz"
 		fi
 		ap_url="https://github.com/async-profiler/async-profiler/releases/download/v${AP_VERSION}/${ap_tarball}"
-		ap_dest="${XDG_DATA_HOME:-$HOME/.local/share}/tetravim/async-profiler"
+		ap_dest="${XDG_DATA_HOME:-$HOME/.local/share}/TetraVim/async-profiler"
 		ap_bin_dir="$HOME/.local/bin"
 		echo "  -> downloading $ap_url"
 		mkdir -p "$ap_dest" "$ap_bin_dir"

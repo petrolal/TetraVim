@@ -1,4 +1,4 @@
-# tetravim.nvim
+# TetraVim
 
 > Enterprise-ready Neovim distribution for modern JVM backend engineering (Java, Kotlin, Scala, Gradle, Maven) and Cloud Native development.
 
@@ -38,14 +38,14 @@ TetraVim is **pure native Neovim** — standard LSPs, Tree-sitter, Mason tools, 
 
 ### Interactive Quickstart
 ```bash
-curl -fsSL https://raw.githubusercontent.com/petrolal/tetravim.nvim/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/petrolal/TetraVim/main/install.sh | bash
 ```
 
 Or, if you'd rather clone yourself first:
 
 ```bash
-git clone https://github.com/petrolal/tetravim.nvim.git ~/tetravim.nvim
-cd ~/tetravim.nvim
+git clone https://github.com/petrolal/TetraVim.git ~/TetraVim
+cd ~/TetraVim
 ./bootstrap.sh
 ```
 
@@ -54,8 +54,8 @@ The interactive bootstrap verifies system dependencies, syncs Lazy.nvim plugins,
 ### Headless & CI / Container Provisioning
 For CI/CD pipelines, Docker containers, GitHub Codespaces, or Coder environments:
 ```bash
-git clone https://github.com/petrolal/tetravim.nvim.git ~/.config/nvim
-nvim --headless -u ~/.config/nvim/init.lua -c "lua require('tetravim.core.setup').run()" -c "qa!"
+git clone https://github.com/petrolal/TetraVim.git ~/.config/nvim
+nvim --headless -u ~/.config/nvim/init.lua -c "lua require('TetraVim.core.setup').run()" -c "qa!"
 ```
 
 ---
@@ -83,7 +83,7 @@ nvim --headless -u ~/.config/nvim/init.lua -c "lua require('tetravim.core.setup'
 
 Check configuration and tool status inside Neovim:
 ```vim
-:checkhealth tetravim
+:checkhealth TetraVim
 ```
 
 For compliance gates and automated scripts, generate machine-readable JSON:

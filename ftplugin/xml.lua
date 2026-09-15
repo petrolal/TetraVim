@@ -2,7 +2,7 @@
 -- Sets buffer-local formatting and comment handling for XML files
 
 -- Indentation: 2-space soft tabs (IntelliJ default)
-require("tetravim.util.ftconv").soft_tabs()
+require("TetraVim.util.ftconv").soft_tabs()
 
 -- Comment formatting: Supports <!-- --> single & multi-line comment blocks
 vim.bo.commentstring = "<!-- %s -->"

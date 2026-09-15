@@ -8,7 +8,7 @@
 -- (via project_rename's own guard) rather than silently falling through to
 -- the default rename. The global mapping for non-JVM filetypes is untouched.
 vim.keymap.set("n", "<leader>cr", function()
-  require("tetravim.util.edit.refactor").project_rename()
+  require("TetraVim.util.edit.refactor").project_rename()
 end, { buffer = 0, desc = "Project-Wide Rename (Java)" })
 
 local ok, jdtls = pcall(require, "jdtls")
@@ -18,9 +18,9 @@ end
 
 -- The bundle-jar globs and lazy.core `opts` lookup below are identical for
 -- every Java buffer in a session, so they run once and the result is parked in
--- tetravim.util.jvm.jdtls_config; subsequent Java buffers skip straight to the
+-- TetraVim.util.jvm.jdtls_config; subsequent Java buffers skip straight to the
 -- per-file work (root dir / workspace `-data` / heap-bounded cmd).
-local jdtls_config_cache = require("tetravim.util.jvm.jdtls_config")
+local jdtls_config_cache = require("TetraVim.util.jvm.jdtls_config")
 local static = jdtls_config_cache.get()
 
 if not static then
@@ -39,7 +39,7 @@ if not static then
   end
 
   -- Story 37.1: IDEA bundled-decompiler parity. The dgileadi/vscode-java-decompiler
-  -- lazy plugin (see lua/tetravim/plugins/lsp-java.lua) ships Fernflower/CFR/
+  -- lazy plugin (see lua/TetraVim/plugins/lsp-java.lua) ships Fernflower/CFR/
   -- Procyon bundle jars under its server/ dir; feeding them to jdtls makes
   -- go-to-definition on a source-less library `.class` open a decompiled buffer.
   -- Paired with `java.contentProvider.preferred = "fernflower"` in lsp-java.lua.
@@ -108,7 +108,7 @@ end
 
 -- Story 5.1: bound the JDTLS JVM heap so indexing a large monorepo cannot
 -- OOM the machine, and auto-restart (bounded) if the server process crashes.
-local resilience = require("tetravim.util.lsp.resilience")
+local resilience = require("TetraVim.util.lsp.resilience")
 cmd = resilience.apply_memory_limit(cmd, {
   xmx = resilience.JDTLS_MAX_HEAP,
   xms = resilience.JDTLS_MIN_HEAP,
@@ -143,7 +143,7 @@ local function make_config()
     -- Shared cmp-nvim-lsp completion capabilities (same table lsp-core.lua
     -- gives every other server) so jdtls emits snippet edits, resolvable
     -- Javadoc and import text-edits for the completion popup.
-    capabilities = require("tetravim.util.lsp.capabilities").make(),
+    capabilities = require("TetraVim.util.lsp.capabilities").make(),
     on_exit = resilience.make_on_exit("jdtls", function()
       -- Only resurrect jdtls if the buffer that started it is still open and
       -- still Java -- otherwise a crash long after the user closed every Java
@@ -172,7 +172,7 @@ local function make_config()
         jdtls_dap.setup_dap_main_class_configs()
       end
       -- Setup Spring Boot DAP configurations (SPEC-006)
-      local ok_sb, springboot_debug = pcall(require, "tetravim.util.jvm.springboot_debug")
+      local ok_sb, springboot_debug = pcall(require, "TetraVim.util.jvm.springboot_debug")
       if ok_sb and springboot_debug.setup_springboot_dap then
         springboot_debug.setup_springboot_dap(root_dir)
       end
@@ -188,7 +188,7 @@ local function make_config()
 
       -- SPEC-2.2: Intelligent Extraction
       -- Wires up: extract_interface, inline, extract_method, extract_variable, extract_constant
-      require("tetravim.util.edit.extract").setup_keymaps(bufnr, "Java")
+      require("TetraVim.util.edit.extract").setup_keymaps(bufnr, "Java")
     end,
   }
 end

@@ -5,7 +5,7 @@
 -- matchit block pairs, on top of the HTML-embedded highlighting in
 -- syntax/freemarker.vim and emmet (declared in lsp-web-tooling.lua).
 
-require("tetravim.util.ftconv").soft_tabs()
+require("TetraVim.util.ftconv").soft_tabs()
 
 -- FreeMarker comments are <#-- ... -->
 vim.bo.commentstring = "<#-- %s -->"

@@ -5,7 +5,7 @@
 -- files: 2-space indent, `<%-- --%>` comment strings, matchit tag pairs, and
 -- emmet (declared in lsp-web-tooling.lua).
 
-require("tetravim.util.ftconv").soft_tabs()
+require("TetraVim.util.ftconv").soft_tabs()
 
 -- JSP comments (`<%-- --%>`) are stripped before the response, unlike HTML
 -- `<!-- -->` comments -- prefer them for the `gc` operator.

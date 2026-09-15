@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-We provide security updates and patches for the following versions of **tetravim.nvim**:
+We provide security updates and patches for the following versions of **TetraVim**:
 
 | Version | Supported          |
 | ------- | ------------------ |
@@ -11,14 +11,14 @@ We provide security updates and patches for the following versions of **tetravim
 
 ## Reporting a Vulnerability
 
-We take the security of `tetravim.nvim` seriously. If you believe you have discovered a vulnerability or security issue:
+We take the security of `TetraVim` seriously. If you believe you have discovered a vulnerability or security issue:
 
 1. **Do not create a public issue or discussion.**
 2. Use GitHub's private vulnerability reporting feature on the repository:
-   - Go to the **Security** tab of `petrolal/tetravim.nvim`.
+   - Go to the **Security** tab of `petrolal/TetraVim`.
    - Click on **Report a vulnerability**.
    - Fill out the details including proof of concept, impact, and affected components.
-3. Alternatively, report via email directly to `petrolalucas@gmail.com` with the subject `[SECURITY] tetravim.nvim Vulnerability Report`. Include detailed reproduction steps.
+3. Alternatively, report via email directly to `petrolalucas@gmail.com` with the subject `[SECURITY] TetraVim Vulnerability Report`. Include detailed reproduction steps.
 
 ### Response Timeline
 - **Initial Response**: Within 48 hours of receiving the report.
@@ -27,5 +27,5 @@ We take the security of `tetravim.nvim` seriously. If you believe you have disco
 
 ## Copyright and Licensing
 
-`tetravim.nvim` is licensed under the [GNU General Public License v3.0 (GPL-3.0)](../LICENSE).
+`TetraVim` is licensed under the [GNU General Public License v3.0 (GPL-3.0)](../LICENSE).
 Copyright (C) 2026 Lucas Petrola. All rights reserved.

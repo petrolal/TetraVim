@@ -3,7 +3,7 @@
 -- (IntelliJ HTTP Client / kulala.nvim syntax)
 
 -- Indentation: 2-space soft tabs
-require("tetravim.util.ftconv").soft_tabs()
+require("TetraVim.util.ftconv").soft_tabs()
 
 -- Comment formatting: .http files use "#" line comments; "###" additionally
 -- delimits request blocks (IntelliJ HTTP Client / kulala.nvim convention).
