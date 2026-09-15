@@ -54,4 +54,4 @@ cd ~/.config/nvim
 
 ## License
 
-Apache License 2.0. See [LICENSE](LICENSE) for details.
+This project is dual-licensed under either the [MIT License](LICENSE) or the [BSD 2-Clause License](LICENSE) at your option. Mandatory attribution to Lucas Petrola is required for any redistributions. See [LICENSE](LICENSE) for details.
