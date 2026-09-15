@@ -8,8 +8,8 @@ describe("Spring Boot Discovery", function()
   end)
 
   describe("Module shape", function()
-    it("should expose public API on tetravim.util.spring", function()
-      local spring = require("tetravim.util.spring")
+    it("should expose public API on tetravim.util.jvm.spring", function()
+      local spring = require("tetravim.util.jvm.spring")
       assert.is_table(spring)
       assert.is_function(spring.detect_root)
       assert.is_function(spring.find_main_class)
@@ -24,16 +24,16 @@ describe("Spring Boot Discovery", function()
       assert.is_function(spring._beans_in_content)
     end)
 
-    it("should expose public API on tetravim.util.spring-picker", function()
-      local picker = require("tetravim.util.spring-picker")
+    it("should expose public API on tetravim.util.jvm.spring_picker", function()
+      local picker = require("tetravim.util.jvm.spring_picker")
       assert.is_table(picker)
       assert.is_function(picker.pick_endpoint)
       assert.is_function(picker.pick_bean)
       assert.is_function(picker.detect_app)
     end)
 
-    it("should expose dedup_insert on tetravim.util.springboot-debug", function()
-      local sb = require("tetravim.util.springboot-debug")
+    it("should expose dedup_insert on tetravim.util.jvm.springboot_debug", function()
+      local sb = require("tetravim.util.jvm.springboot_debug")
       assert.is_table(sb)
       assert.is_function(sb.launch_debug)
       assert.is_function(sb.setup_springboot_dap)
@@ -42,7 +42,7 @@ describe("Spring Boot Discovery", function()
   end)
 
   describe("AST parsing fixtures", function()
-    local spring = require("tetravim.util.spring")
+    local spring = require("tetravim.util.jvm.spring")
 
     it("should parse Spring MVC controller endpoints with @RestController and mappings", function()
       local content = [[
@@ -190,7 +190,7 @@ class KotlinService(
   end)
 
   describe("DAP configuration deduplication", function()
-    local sb = require("tetravim.util.springboot-debug")
+    local sb = require("tetravim.util.jvm.springboot_debug")
 
     it("should deduplicate configs by non-nil name and allow multiple nil-named configs", function()
       local configs = {}
@@ -209,7 +209,7 @@ class KotlinService(
   end)
 
   describe("Graceful degradation (I/O Matrix Rows 7 & 8)", function()
-    local spring = require("tetravim.util.spring")
+    local spring = require("tetravim.util.jvm.spring")
 
     it("should warn and cb(nil) when rg and grep are both absent (Matrix row 7)", function()
       local orig_exec = vim.fn.executable
@@ -281,6 +281,121 @@ class KotlinService(
       assert.is_true(#notified >= 1)
       assert.are.equal(vim.log.levels.WARN, notified[1].level)
       assert.is_truthy(notified[1].msg:find("Tree%-sitter java parser not available"))
+    end)
+  end)
+
+  -- Migrated from scripts/validate-2-3.sh (steps [2/4], [3/4], [4/4]). Needs rg
+  -- and the Tree-sitter java parser, both present in the plenary busted child.
+  describe("Native discovery -- behavioral (DAP config + keymaps)", function()
+    local spring_pkg = "tetravim.util.jvm.springboot_debug"
+    local fixture, saved_cwd
+
+    local function make_fixture()
+      local root = vim.fn.tempname()
+      vim.fn.mkdir(root .. "/src/main/java/com/example", "p")
+      vim.fn.writefile({
+        '<project xmlns="http://maven.apache.org/POM/4.0.0">',
+        "  <modelVersion>4.0.0</modelVersion>",
+        "  <groupId>com.example</groupId>",
+        "  <artifactId>demo-app</artifactId>",
+        "  <version>0.0.1-SNAPSHOT</version>",
+        "</project>",
+      }, root .. "/pom.xml")
+      vim.fn.writefile({
+        "package com.example;",
+        "import org.springframework.boot.autoconfigure.SpringBootApplication;",
+        "@SpringBootApplication",
+        "public class DemoApplication {}",
+      }, root .. "/src/main/java/com/example/DemoApplication.java")
+      return root
+    end
+
+    before_each(function()
+      fixture = make_fixture()
+      saved_cwd = vim.fn.getcwd()
+      package.loaded["dap"] = nil
+    end)
+
+    after_each(function()
+      pcall(vim.fn.chdir, saved_cwd)
+      vim.fn.delete(fixture, "rf")
+      package.loaded["dap"] = nil
+    end)
+
+    it("setup_springboot_dap generates a launch + attach config and is idempotent", function()
+      local fake_dap = { configurations = { java = {} } }
+      package.loaded["dap"] = fake_dap
+
+      local sb = require(spring_pkg)
+      sb.setup_springboot_dap(fixture)
+      vim.wait(5000, function()
+        return #fake_dap.configurations.java == 2
+      end, 50)
+
+      assert.are.equal(2, #fake_dap.configurations.java)
+      local launch, attach = fake_dap.configurations.java[1], fake_dap.configurations.java[2]
+      assert.are.equal("launch", launch.request)
+      assert.are.equal("com.example.DemoApplication", launch.mainClass)
+      assert.are.equal("Spring Boot: demo-app", launch.name)
+      assert.are.equal("attach", attach.request)
+      assert.are.equal("Spring Boot: demo-app (attach)", attach.name)
+
+      -- A second attach in the same project must not duplicate.
+      sb.setup_springboot_dap(fixture)
+      vim.wait(300, function()
+        return false
+      end, 50)
+      assert.are.equal(2, #fake_dap.configurations.java)
+    end)
+
+    it("<leader>jse / <leader>jsb / <leader>jsd resolve and <leader>jsd notifies app details", function()
+      vim.fn.chdir(fixture)
+      require("tetravim.util.jvm.jvm").setup_keymaps()
+
+      for _, lhs in ipairs({ "<leader>jse", "<leader>jsb", "<leader>jsd" }) do
+        local m = vim.fn.maparg(lhs, "n", false, true)
+        assert.is_table(m)
+        assert.is_function(m.callback)
+      end
+
+      local notified = {}
+      local orig_notify = vim.notify
+      vim.notify = function(msg, level)
+        table.insert(notified, { msg = msg, level = level })
+      end
+      vim.fn.maparg("<leader>jsd", "n", false, true).callback()
+      vim.wait(5000, function()
+        return #notified > 0
+      end, 50)
+      vim.notify = orig_notify
+
+      assert.is_true(#notified >= 1)
+      assert.are.equal("Spring Boot: demo-app (maven) — com.example.DemoApplication", notified[1].msg)
+    end)
+
+    it("<leader>jrd (launch_debug) registers a config and calls dap.continue()", function()
+      vim.fn.chdir(fixture)
+      local continued = false
+      package.loaded["dap"] = {
+        configurations = { java = {} },
+        continue = function()
+          continued = true
+        end,
+      }
+
+      require("tetravim.util.jvm.jvm").setup_keymaps()
+      local m = vim.fn.maparg("<leader>jrd", "n", false, true)
+      assert.is_table(m)
+      assert.is_function(m.callback)
+      m.callback()
+      vim.wait(5000, function()
+        return continued
+      end, 50)
+
+      assert.is_true(continued)
+      local java = package.loaded["dap"].configurations.java
+      assert.is_true(#java >= 1)
+      assert.are.equal("Spring Boot: demo-app", java[1].name)
     end)
   end)
 end)

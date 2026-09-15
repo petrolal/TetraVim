@@ -1,3 +1,5 @@
+local ui = require("tetravim.util.ui")
+
 local banner = [[
   ╭────────────────────────────────────────────────╮  
   │                                                │  
@@ -9,6 +11,12 @@ local banner = [[
   ╰────────────────────────────────────────────────╯  
                JVM & CLOUD-NATIVE ECOSYSTEM           
 ]]
+
+-- Dashboard git-sha reader + footer section builder, and the snacks.nvim
+-- runtime patches / <leader>u state toggles, live in util/ so this spec stays a
+-- declarative list of opts/keys.
+local dashboard = require("tetravim.util.dashboard")
+local snacks_ext = require("tetravim.util.snacks_ext")
 
 return {
   {
@@ -25,8 +33,16 @@ return {
         title = " ☁ Notifications ",
       })
 
-      opts.picker = opts.picker or {}
-      opts.picker.prompt = " ☁ >"
+      opts.picker = vim.tbl_deep_extend("force", opts.picker or {}, {
+        enabled = true,
+        ui_select = true,
+        prompt = " ☁ >",
+        sources = {
+          lsp_implementations = {
+            include_current = true,
+          },
+        },
+      })
 
       opts.notifier = opts.notifier or {}
       opts.notifier.enabled = true
@@ -35,6 +51,15 @@ return {
       opts.image = opts.image or {}
       opts.image.enabled = true
       opts.image.doc = { inline = true }
+
+      -- Disable code insight (Tree-sitter, LSP, folds, syntax) for very large
+      -- buffers -- the native equivalent of IntelliJ's "file too large" guard.
+      opts.bigfile = vim.tbl_deep_extend("force", opts.bigfile or {}, { enabled = true })
+
+      -- Animations are the classic latency complaint over SSH / tmux / mosh,
+      -- and this distro is explicitly "used on real work" -- often remote.
+      -- Keep the visuals, drop the motion when we detect a remote session.
+      local remote = (vim.env.SSH_TTY or vim.env.SSH_CONNECTION) ~= nil
 
       -- Indent guides + an animated highlight of the scope the cursor is
       -- currently inside, so nesting is readable at a glance.
@@ -50,14 +75,14 @@ return {
           hl = "SnacksIndentScope",
         },
         animate = {
-          enabled = true,
+          enabled = not remote,
           duration = { step = 15, total = 300 },
         },
       })
 
       -- Smooth cursor-relative scrolling and a rounded `vim.ui.input` prompt
       -- that matches the rest of the floating-window chrome.
-      opts.scroll = vim.tbl_deep_extend("force", opts.scroll or {}, { enabled = true })
+      opts.scroll = vim.tbl_deep_extend("force", opts.scroll or {}, { enabled = not remote })
       opts.input = vim.tbl_deep_extend("force", opts.input or {}, { enabled = true })
 
       opts.dashboard = opts.dashboard or {}
@@ -75,26 +100,7 @@ return {
         { section = "header", padding = 2, align = "center" },
         { section = "keys", gap = 1, padding = 2 },
         { section = "startup", padding = 2, align = "center" },
-        function()
-          local commit = ""
-          local handle = io.popen("git rev-parse --short HEAD 2>/dev/null")
-          if handle then
-            local raw = handle:read("*a")
-            commit = (raw or ""):gsub("%s+", "")
-            handle:close()
-          end
-          local date = os.date("%d/%m/%y")
-          local version = "v1.0.0"
-          return {
-            align = "center",
-            text = {
-              {
-                "TETRAVIM • " .. version .. " • " .. commit .. " • " .. date,
-                hl = "SnacksDashboardFooter",
-              },
-            },
-          }
-        end,
+        dashboard.footer_section,
       }
       opts.dashboard.preset = opts.dashboard.preset or {}
       opts.dashboard.preset.header = banner
@@ -113,7 +119,7 @@ return {
           key = "p",
           desc = "New Project Wizard",
           action = function()
-            require("tetravim.util.project-wizard").create_project()
+            require("tetravim.util.jvm.project_wizard").create_project()
           end,
         },
         {
@@ -173,7 +179,7 @@ return {
             if ok then
               persistence.load()
             else
-              vim.notify("persistence.nvim is not loaded", vim.log.levels.WARN)
+              ui.notify_warn("persistence.nvim is not loaded")
             end
           end,
         },
@@ -188,75 +194,9 @@ return {
         Snacks.notifier.notify(msg, level, notify_opts)
       end
 
-      -- State toggles under <leader>u. Snacks.toggle gives each one a
-      -- get/set-backed on/off notification and, via which-key, a filled/empty
-      -- icon that mirrors the live state -- so these replace the hand-rolled
-      -- vim.keymap.set + vim.notify blocks that used to sit in
-      -- core/keymaps.lua. The buffer-scoped pair reads the *effective* state
-      -- (buffer override, else global) and writes only vim.b; the global pair
-      -- writes vim.g and clears the buffer override so it stops shadowing.
-      Snacks.toggle
-        .new({
-          id = "tetravim_autoformat_buffer",
-          name = "Autoformat (Buffer)",
-          get = function()
-            return require("tetravim.util.format").enabled(0)
-          end,
-          set = function(state)
-            vim.b.autoformat = state
-          end,
-        })
-        :map("<leader>uf")
-      Snacks.toggle
-        .new({
-          id = "tetravim_autoformat_global",
-          name = "Autoformat (Global)",
-          get = function()
-            return vim.g.autoformat ~= false
-          end,
-          set = function(state)
-            vim.g.autoformat = state
-            vim.b.autoformat = nil
-          end,
-        })
-        :map("<leader>uF")
-      Snacks.toggle
-        .new({
-          id = "tetravim_autolint_buffer",
-          name = "Autolint (Buffer)",
-          get = function()
-            return require("tetravim.util.lint").enabled(0)
-          end,
-          set = function(state)
-            vim.b.autolint = state
-          end,
-        })
-        :map("<leader>ul")
-      Snacks.toggle
-        .new({
-          id = "tetravim_autolint_global",
-          name = "Autolint (Global)",
-          get = function()
-            return vim.g.autolint ~= false
-          end,
-          set = function(state)
-            vim.g.autolint = state
-            vim.b.autolint = nil
-          end,
-        })
-        :map("<leader>uL")
-      Snacks.toggle
-        .new({
-          id = "tetravim_transparency",
-          name = "Transparency",
-          get = function()
-            return require("tetravim.util.transparency").enabled
-          end,
-          set = function(state)
-            require("tetravim.util.transparency").set(state)
-          end,
-        })
-        :map("<leader>ut")
+      snacks_ext.suppress_image_health()
+      snacks_ext.guard_picker_jump()
+      snacks_ext.register_state_toggles()
     end,
     keys = {
       {
@@ -360,7 +300,7 @@ return {
           if #vim.lsp.get_clients({ bufnr = 0, method = "textDocument/typeDefinition" }) > 0 then
             Snacks.picker.lsp_type_definitions()
           else
-            vim.notify("LSP type definition not supported for buffer", vim.log.levels.WARN)
+            ui.notify_warn("LSP type definition not supported for buffer")
           end
         end,
         mode = "n",
@@ -370,7 +310,7 @@ return {
         "gi",
         function()
           if #vim.lsp.get_clients({ bufnr = 0, method = "textDocument/implementation" }) > 0 then
-            Snacks.picker.lsp_implementations()
+            Snacks.picker.lsp_implementations({ include_current = true })
           else
             pcall(vim.cmd, "normal! gi")
           end
@@ -389,13 +329,6 @@ return {
         end,
         mode = "n",
         desc = "References (Grep Fallback)",
-      },
-      {
-        "<leader>odd",
-        function()
-          Snacks.terminal("lazydocker")
-        end,
-        desc = "LazyDocker",
       },
       {
         "<leader>gg",

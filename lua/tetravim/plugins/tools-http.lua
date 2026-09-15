@@ -5,7 +5,7 @@
 -- hand-written HTTP request executor, per the spec's "Never" boundary).
 -- This file only wires the plugin up; the custom pieces this story adds
 -- (OpenAPI-spec-to-.http generation, jq response filtering) live in
--- tetravim.util.openapi / tetravim.util.http and are driven from the
+-- tetravim.util.clients.openapi / tetravim.util.clients.http and are driven from the
 -- <leader>ah keymap group in core/keymaps.lua -- mirroring how
 -- tools-dadbod.lua owns only the plugin spec while <leader>ad's actual
 -- keymaps live in keymaps.lua.
@@ -22,6 +22,9 @@ return {
     -- scope is the .http workflow, not kulala's JS/TS scripting surface.
     ft = { "http" },
     opts = {
+      treesitter = {
+        enable = false,
+      },
       ui = {
         -- Force a persistent split, never a floating window, per this
         -- epic's established response-display UX pattern. "split" is a

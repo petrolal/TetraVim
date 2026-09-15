@@ -3,48 +3,50 @@
 -- Integrates neotest with neotest-java for visual test tree discovery,
 -- nearest test execution, and DAP debugging across JVM projects.
 
+local ui = require("tetravim.util.ui")
+
 local function run_nearest()
   local ok, neotest = pcall(require, "neotest")
   if not ok then
-    vim.notify("neotest is not available", vim.log.levels.WARN, { title = "TetraVim Test" })
+    ui.notify_warn("neotest is not available", "TetraVim Test")
     return
   end
   local file = vim.api.nvim_buf_get_name(0)
   if not file or file == "" or vim.bo.buftype ~= "" then
-    vim.notify("Current buffer is not a valid test file", vim.log.levels.WARN, { title = "TetraVim Test" })
+    ui.notify_warn("Current buffer is not a valid test file", "TetraVim Test")
     return
   end
   local call_ok, err = pcall(function()
     neotest.run.run()
   end)
   if not call_ok then
-    vim.notify("Failed to run nearest test: " .. tostring(err), vim.log.levels.WARN, { title = "TetraVim Test" })
+    ui.notify_warn("Failed to run nearest test: " .. tostring(err), "TetraVim Test")
   end
 end
 
 local function run_file()
   local ok, neotest = pcall(require, "neotest")
   if not ok then
-    vim.notify("neotest is not available", vim.log.levels.WARN, { title = "TetraVim Test" })
+    ui.notify_warn("neotest is not available", "TetraVim Test")
     return
   end
   local file = vim.api.nvim_buf_get_name(0)
   if not file or file == "" or vim.bo.buftype ~= "" then
-    vim.notify("Current buffer is not a runnable test file", vim.log.levels.WARN, { title = "TetraVim Test" })
+    ui.notify_warn("Current buffer is not a runnable test file", "TetraVim Test")
     return
   end
   local call_ok, err = pcall(function()
     neotest.run.run(file)
   end)
   if not call_ok then
-    vim.notify("Failed to run test file: " .. tostring(err), vim.log.levels.WARN, { title = "TetraVim Test" })
+    ui.notify_warn("Failed to run test file: " .. tostring(err), "TetraVim Test")
   end
 end
 
 local function toggle_summary()
   local ok, neotest = pcall(require, "neotest")
   if not ok then
-    vim.notify("neotest is not available", vim.log.levels.WARN, { title = "TetraVim Test" })
+    ui.notify_warn("neotest is not available", "TetraVim Test")
     return
   end
   pcall(function()
@@ -55,7 +57,7 @@ end
 local function toggle_output()
   local ok, neotest = pcall(require, "neotest")
   if not ok then
-    vim.notify("neotest is not available", vim.log.levels.WARN, { title = "TetraVim Test" })
+    ui.notify_warn("neotest is not available", "TetraVim Test")
     return
   end
   pcall(function()
@@ -66,19 +68,19 @@ end
 local function debug_nearest()
   local ok, neotest = pcall(require, "neotest")
   if not ok then
-    vim.notify("neotest is not available", vim.log.levels.WARN, { title = "TetraVim Test" })
+    ui.notify_warn("neotest is not available", "TetraVim Test")
     return
   end
   local dap_ok, _ = pcall(require, "dap")
   if not dap_ok then
-    vim.notify("DAP debugger is not configured", vim.log.levels.WARN, { title = "TetraVim Test" })
+    ui.notify_warn("DAP debugger is not configured", "TetraVim Test")
     return
   end
   local call_ok, err = pcall(function()
     neotest.run.run({ strategy = "dap" })
   end)
   if not call_ok then
-    vim.notify("Failed to debug nearest test: " .. tostring(err), vim.log.levels.WARN, { title = "TetraVim Test" })
+    ui.notify_warn("Failed to debug nearest test: " .. tostring(err), "TetraVim Test")
   end
 end
 
@@ -88,22 +90,27 @@ return {
     dependencies = {
       "nvim-lua/plenary.nvim",
       "nvim-neotest/nvim-nio",
-      "antoinemadec/FixCursorHold.nvim",
       "nvim-treesitter/nvim-treesitter",
       {
         "rcasia/neotest-java",
         -- Upstream ships the JUnit Platform Console Standalone jar only via the
         -- interactive `:NeotestJava setup`; fetch it non-interactively so a
-        -- fresh clone can run tests without a manual step.
+        -- fresh clone can run tests without a manual step. This runs during
+        -- `:Lazy sync` (off the UI thread), so the blocking variant is fine
+        -- and preferable -- the jar is guaranteed present when sync returns.
         build = function()
-          require("tetravim.util.neotest_java").ensure(true)
+          require("tetravim.util.jvm.neotest_java").ensure_blocking(true)
         end,
       },
+      -- Scala test tree. Kotlin/Groovy have no neotest adapter and route
+      -- through `tetravim.util.jvm.test` (in-repo Gradle/Maven runner) instead.
+      "stevanmilic/neotest-scala",
     },
-    -- Only `neotest-java` is registered as an adapter below, so there is no
-    -- runnable coverage for kotlin/scala buffers -- gate the plugin load on
-    -- java alone to avoid loading neotest where it can do nothing.
-    ft = { "java" },
+    -- Adapters registered below cover `.java` (neotest-java) and `.scala` /
+    -- `.sbt` (neotest-scala); gate the plugin load on those filetypes so
+    -- neotest never loads where it has no adapter. Kotlin is handled outside
+    -- neotest entirely (`ftplugin/kotlin.lua` -> `tetravim.util.jvm.test`).
+    ft = { "java", "scala", "sbt" },
     keys = {
       {
         "<leader>tr",
@@ -142,7 +149,7 @@ return {
         -- client_provider ("No Java file found in the directory"). Decline any
         -- project tree with no hand-written .java sources, and any non-.java
         -- buffer, so those runs fall through instead of crashing.
-        local nj = require("tetravim.util.neotest_java")
+        local nj = require("tetravim.util.jvm.neotest_java")
         local base_root = adapter.root
         local base_is_test_file = adapter.is_test_file
         local java_root_cache = {}
@@ -169,6 +176,17 @@ return {
 
         table.insert(adapters, adapter)
       end
+
+      local ok_scala, neotest_scala = pcall(require, "neotest-scala")
+      if ok_scala then
+        -- runner + framework auto-detect from the build (bloop/sbt, munit/
+        -- scalatest/specs2/utest); no config needed for the common case.
+        local ok_build, scala_adapter = pcall(neotest_scala, {})
+        if ok_build and scala_adapter then
+          table.insert(adapters, scala_adapter)
+        end
+      end
+
       return {
         adapters = adapters,
         status = { virtual_text = true },
@@ -178,8 +196,11 @@ return {
     config = function(_, opts)
       -- `build` covers install/update; guard here too for clones synced before
       -- this spec landed, or a build step that ran without network access.
+      -- This fires on the first Java file open, so it must NOT block the UI --
+      -- the async variant downloads the ~15 MB jar off the main thread and
+      -- the next `<leader>tr` picks it up once it lands.
       pcall(function()
-        require("tetravim.util.neotest_java").ensure(true)
+        require("tetravim.util.jvm.neotest_java").ensure(true)
       end)
       local neotest = require("neotest")
       neotest.setup(opts)

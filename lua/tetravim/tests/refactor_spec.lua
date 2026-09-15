@@ -5,16 +5,16 @@
 -- ftplugin/java.lua / lsp-kotlin.lua. Like the repo's other *_spec.lua
 -- files, this avoids driving a real jdtls/kotlin_language_server client --
 -- that behavioral coverage (a live rename against a fixture project,
--- confirmed through the quickfix preview) lives in
--- scripts/validate-refactor.sh, which runs in its own fresh `nvim
--- --headless` process. `scan_root_async` itself IS exercised directly here
--- (it only needs `rg`/`grep` + real files on disk, no LSP), since it's the
--- most bug-prone piece (duplicate-occurrence and package-scoping fixes).
+-- confirmed through the quickfix preview) needs a running LSP and is
+-- verified manually per spec-2-1's Verification section. `scan_root_async`
+-- itself IS exercised directly here (it only needs `rg`/`grep` + real files
+-- on disk, no LSP), since it's the most bug-prone piece (duplicate-
+-- occurrence and package-scoping fixes).
 
 describe("Refactor (SPEC-2.1)", function()
-  describe("tetravim.util.refactor", function()
+  describe("tetravim.util.edit.refactor", function()
     it("should expose project_rename and the internal rename pipeline", function()
-      local refactor = require("tetravim.util.refactor")
+      local refactor = require("tetravim.util.edit.refactor")
       assert.is_table(refactor)
       assert.is_function(refactor.project_rename)
       assert.is_function(refactor.find_jvm_client)
@@ -26,7 +26,7 @@ describe("Refactor (SPEC-2.1)", function()
     end)
 
     it("should notify and return without erroring when no JVM LSP is attached", function()
-      local refactor = require("tetravim.util.refactor")
+      local refactor = require("tetravim.util.edit.refactor")
       vim.cmd("enew")
       -- A fresh scratch buffer has no LSP clients attached at all.
       assert.is_nil(refactor.find_jvm_client(vim.api.nvim_get_current_buf()))
@@ -35,9 +35,9 @@ describe("Refactor (SPEC-2.1)", function()
       end)
     end)
 
-    it("should reject a second project_rename while one is already in flight (shared action-lock.lua)", function()
-      local refactor = require("tetravim.util.refactor")
-      local action_lock = require("tetravim.util.action-lock")
+    it("should reject a second project_rename while one is already in flight (shared action_lock.lua)", function()
+      local refactor = require("tetravim.util.edit.refactor")
+      local action_lock = require("tetravim.util.action_lock")
       local notified = {}
       local orig_notify = vim.notify
       vim.notify = function(msg, level)
@@ -55,11 +55,11 @@ describe("Refactor (SPEC-2.1)", function()
     end)
 
     it(
-      "action-lock.lua is SHARED with tetravim.util.extract -- an extract/inline action in flight must also reject a concurrent project_rename",
+      "action_lock.lua is SHARED with tetravim.util.edit.extract -- an extract/inline action in flight must also reject a concurrent project_rename",
       function()
-        local refactor = require("tetravim.util.refactor")
-        local extract = require("tetravim.util.extract")
-        local action_lock = require("tetravim.util.action-lock")
+        local refactor = require("tetravim.util.edit.refactor")
+        local extract = require("tetravim.util.edit.extract")
+        local action_lock = require("tetravim.util.action_lock")
 
         assert.is_false(action_lock.is_busy())
 
@@ -118,9 +118,9 @@ describe("Refactor (SPEC-2.1)", function()
     it(
       "M._on_rename_response should warn and skip the Spring/treesitter scan (LSP-only locations) when the JVM client reports no root_dir, and release the lock on both Apply and Cancel",
       function()
-        local refactor = require("tetravim.util.refactor")
-        local action_lock = require("tetravim.util.action-lock")
-        local refactor_ts = require("tetravim.util.refactor-treesitter")
+        local refactor = require("tetravim.util.edit.refactor")
+        local action_lock = require("tetravim.util.action_lock")
+        local refactor_ts = require("tetravim.util.edit.refactor_treesitter")
 
         -- Real temp file (not a fake nonexistent URI) so
         -- vim.lsp.util.apply_workspace_edit's real file/buffer machinery on
@@ -141,6 +141,19 @@ describe("Refactor (SPEC-2.1)", function()
             name = "jdtls",
             offset_encoding = "utf-16",
             config = {}, -- no root_dir
+            request = function(_, _, _, handler)
+              handler(nil, {
+                changes = {
+                  ["file://" .. java_file] = {
+                    {
+                      range = { start = { line = 0, character = 13 }, ["end"] = { line = 0, character = 16 } },
+                      newText = "Bar",
+                    },
+                  },
+                },
+              })
+              return true, 1
+            end,
           }
 
           local orig_get_clients = vim.lsp.get_clients
@@ -224,7 +237,7 @@ describe("Refactor (SPEC-2.1)", function()
     )
 
     it("should flatten a WorkspaceEdit's `changes` into uri/range locations", function()
-      local refactor = require("tetravim.util.refactor")
+      local refactor = require("tetravim.util.edit.refactor")
       local edit = {
         changes = {
           ["file:///a/Foo.java"] = {
@@ -239,7 +252,7 @@ describe("Refactor (SPEC-2.1)", function()
     end)
 
     it("should not drop a location under a generated/build directory", function()
-      local refactor = require("tetravim.util.refactor")
+      local refactor = require("tetravim.util.edit.refactor")
       local edit = {
         changes = {
           ["file:///proj/target/generated-sources/Foo.java"] = {
@@ -258,7 +271,7 @@ describe("Refactor (SPEC-2.1)", function()
     end)
 
     it("should flatten a WorkspaceEdit's `documentChanges` (TextDocumentEdit) into locations", function()
-      local refactor = require("tetravim.util.refactor")
+      local refactor = require("tetravim.util.edit.refactor")
       local edit = {
         documentChanges = {
           {
@@ -278,7 +291,7 @@ describe("Refactor (SPEC-2.1)", function()
     end)
 
     it("filter_overlapping_spring_items should drop a Spring item overlapping an LSP-covered range", function()
-      local refactor = require("tetravim.util.refactor")
+      local refactor = require("tetravim.util.edit.refactor")
       local lsp_items = {
         { filename = "/a/Foo.java", lnum = 5, col = 10, end_col = 20 },
       }
@@ -295,7 +308,7 @@ describe("Refactor (SPEC-2.1)", function()
     end)
 
     it("spring_items_to_qf should tag each item with a kind label and preserve position", function()
-      local refactor = require("tetravim.util.refactor")
+      local refactor = require("tetravim.util.edit.refactor")
       local qf = refactor.spring_items_to_qf({
         {
           file = "/a/beans.xml",
@@ -316,8 +329,8 @@ describe("Refactor (SPEC-2.1)", function()
     it(
       "apply_spring_edits should rename BOTH occurrences on a line with the symbol twice, without corruption",
       function()
-        local refactor = require("tetravim.util.refactor")
-        local ts = require("tetravim.util.refactor-treesitter")
+        local refactor = require("tetravim.util.edit.refactor")
+        local ts = require("tetravim.util.edit.refactor_treesitter")
         local file = vim.fn.tempname() .. ".java"
         vim.fn.writefile({
           "public class Consumer {",
@@ -356,7 +369,7 @@ describe("Refactor (SPEC-2.1)", function()
     )
 
     it("apply_spring_edits should report a failed file rather than silently under-counting", function()
-      local refactor = require("tetravim.util.refactor")
+      local refactor = require("tetravim.util.edit.refactor")
       local items = {
         {
           file = "/nonexistent/path/that/cannot/exist/Foo.xml",
@@ -373,9 +386,9 @@ describe("Refactor (SPEC-2.1)", function()
     end)
   end)
 
-  describe("tetravim.util.refactor-treesitter", function()
+  describe("tetravim.util.edit.refactor_treesitter", function()
     it("should expose the scan/classification API", function()
-      local ts = require("tetravim.util.refactor-treesitter")
+      local ts = require("tetravim.util.edit.refactor_treesitter")
       assert.is_table(ts)
       assert.is_function(ts.scan_root_async)
       assert.is_function(ts.raw_hits_async)
@@ -387,7 +400,7 @@ describe("Refactor (SPEC-2.1)", function()
     end)
 
     it('should classify a Spring XML <bean class="..."> entry referencing the symbol', function()
-      local ts = require("tetravim.util.refactor-treesitter")
+      local ts = require("tetravim.util.edit.refactor_treesitter")
       local line = '  <bean id="fooService" class="com.example.FooService"/>'
       local occurrences = ts.classify_xml_line(line, "FooService")
       assert.are.equal(1, #occurrences)
@@ -397,13 +410,13 @@ describe("Refactor (SPEC-2.1)", function()
     end)
 
     it("should not classify an XML line that merely mentions the symbol outside a bean class attribute", function()
-      local ts = require("tetravim.util.refactor-treesitter")
+      local ts = require("tetravim.util.edit.refactor_treesitter")
       local line = "  <!-- FooService is wired below -->"
       assert.is_nil(ts.classify_xml_line(line, "FooService"))
     end)
 
     it("should treat a bare simple-name (no package) bean class attribute as package-undeterminable", function()
-      local ts = require("tetravim.util.refactor-treesitter")
+      local ts = require("tetravim.util.edit.refactor_treesitter")
       local line = '  <bean id="fooService" class="FooService"/>'
       local occurrences = ts.classify_xml_line(line, "FooService")
       assert.are.equal(1, #occurrences)
@@ -411,19 +424,19 @@ describe("Refactor (SPEC-2.1)", function()
     end)
 
     it("is_inside_xml_comment should detect a bean entry inside a single-line XML comment", function()
-      local ts = require("tetravim.util.refactor-treesitter")
+      local ts = require("tetravim.util.edit.refactor_treesitter")
       local lines = { "<beans>", '<!-- <bean id="x" class="com.example.FooService"/> -->', "</beans>" }
       assert.is_true(ts.is_inside_xml_comment(lines, 2, 30))
     end)
 
     it("is_inside_xml_comment should not flag a live (non-commented) bean entry", function()
-      local ts = require("tetravim.util.refactor-treesitter")
+      local ts = require("tetravim.util.edit.refactor_treesitter")
       local lines = { "<beans>", '<bean id="x" class="com.example.FooService"/>', "</beans>" }
       assert.is_false(ts.is_inside_xml_comment(lines, 2, 20))
     end)
 
     it("should classify an @Autowired field of the renamed type", function()
-      local ts = require("tetravim.util.refactor-treesitter")
+      local ts = require("tetravim.util.edit.refactor_treesitter")
       local lines = {
         "public class Consumer {",
         "  @Autowired",
@@ -437,7 +450,7 @@ describe("Refactor (SPEC-2.1)", function()
     end)
 
     it("should classify BOTH occurrences when the renamed type appears twice on one line", function()
-      local ts = require("tetravim.util.refactor-treesitter")
+      local ts = require("tetravim.util.edit.refactor_treesitter")
       local lines = {
         "public class Consumer {",
         "  @Autowired",
@@ -454,7 +467,7 @@ describe("Refactor (SPEC-2.1)", function()
     end)
 
     it("should classify a stereotype-annotated class declaration", function()
-      local ts = require("tetravim.util.refactor-treesitter")
+      local ts = require("tetravim.util.edit.refactor_treesitter")
       local lines = {
         "package com.example;",
         "",
@@ -468,7 +481,7 @@ describe("Refactor (SPEC-2.1)", function()
     end)
 
     it("should not classify a field of the renamed type without @Autowired or a stereotype", function()
-      local ts = require("tetravim.util.refactor-treesitter")
+      local ts = require("tetravim.util.edit.refactor_treesitter")
       local lines = {
         "public class Consumer {",
         "  private FooService fooService;",
@@ -479,7 +492,7 @@ describe("Refactor (SPEC-2.1)", function()
     end)
 
     it("file_package should extract a Java/Kotlin package declaration", function()
-      local ts = require("tetravim.util.refactor-treesitter")
+      local ts = require("tetravim.util.edit.refactor_treesitter")
       assert.are.equal("com.example", ts.file_package({ "package com.example;", "", "class Foo {}" }))
       assert.are.equal("com.example.sub", ts.file_package({ "package com.example.sub", "class Foo" }))
       assert.is_nil(ts.file_package({ "class Foo {}" }))
@@ -488,7 +501,7 @@ describe("Refactor (SPEC-2.1)", function()
     it(
       "scan_root_async should package-scope Spring matches: renaming com.example.FooService must not touch com.other.FooService",
       function()
-        local ts = require("tetravim.util.refactor-treesitter")
+        local ts = require("tetravim.util.edit.refactor_treesitter")
         local root = vim.fn.tempname()
         vim.fn.mkdir(root .. "/com/example", "p")
         vim.fn.mkdir(root .. "/com/other", "p")
@@ -566,7 +579,7 @@ describe("Refactor (SPEC-2.1)", function()
       end)
       vim.api.nvim_buf_delete(other, { force = true })
 
-      local refactor = require("tetravim.util.refactor")
+      local refactor = require("tetravim.util.edit.refactor")
       local called = false
       local orig = refactor.project_rename
       refactor.project_rename = function()
@@ -623,8 +636,8 @@ describe("Refactor (SPEC-2.1)", function()
     -- sites -- was previously uncovered. A leak there silently disables all
     -- rename + extract for the session.
     local function with_stubbed_prompt(input_value, body)
-      local refactor = require("tetravim.util.refactor")
-      local action_lock = require("tetravim.util.action-lock")
+      local refactor = require("tetravim.util.edit.refactor")
+      local action_lock = require("tetravim.util.action_lock")
       action_lock.release() -- start clean regardless of prior test state
 
       local orig_get_clients = vim.lsp.get_clients
@@ -703,7 +716,7 @@ describe("Refactor (SPEC-2.1)", function()
 
   describe("apply_spring_edits stale-span guard (SPEC-2.1 review 2026-09-01)", function()
     it("skips a span (and fails its file) when the live buffer text no longer matches old_name", function()
-      local refactor = require("tetravim.util.refactor")
+      local refactor = require("tetravim.util.edit.refactor")
       local file = vim.fn.tempname() .. ".java"
       vim.fn.writefile({ "class Consumer {", "  private FooService a;", "}" }, file)
 
@@ -729,5 +742,245 @@ describe("Refactor (SPEC-2.1)", function()
       vim.api.nvim_buf_delete(bufnr, { force = true })
       os.remove(file)
     end)
+  end)
+
+  -- Migrated from scripts/validate-refactor.sh. Steps [1]/[3] (module shape,
+  -- Cancel-leaves-files-untouched) are already covered above; what is ported
+  -- here is the end-to-end fixture rename against a real root_dir (the mocked
+  -- WorkspaceEdit merged with the real, un-mocked refactor_treesitter scan and
+  -- both edit sets applied -- step [2]), the LSP-error collision abort
+  -- (step [4]) and the rg->grep fallback (step [5]). All three only need the
+  -- LSP seam mocked plus rg/grep + real files on disk, so they run fine in the
+  -- plenary child.
+  describe("project-wide rename end-to-end (mocked JDTLS seam)", function()
+    local action_lock = require("tetravim.util.action_lock")
+
+    local function make_fixture()
+      local root = vim.fn.tempname()
+      vim.fn.mkdir(root .. "/src/main/java/com/example", "p")
+      vim.fn.mkdir(root .. "/src/main/java/com/other", "p")
+      vim.fn.mkdir(root .. "/src/main/resources", "p")
+      vim.fn.writefile({
+        "package com.example;",
+        "",
+        "import org.springframework.stereotype.Service;",
+        "",
+        "@Service",
+        "public class FooService {",
+        "}",
+      }, root .. "/src/main/java/com/example/FooService.java")
+      vim.fn.writefile({
+        "package com.example;",
+        "",
+        "import org.springframework.beans.factory.annotation.Autowired;",
+        "",
+        "public class Consumer {",
+        "  @Autowired",
+        "  private FooService fooService = FooService.createDefault();",
+        "}",
+      }, root .. "/src/main/java/com/example/Consumer.java")
+      vim.fn.writefile({
+        "package com.other;",
+        "",
+        "public class FooService {",
+        "}",
+      }, root .. "/src/main/java/com/other/FooService.java")
+      vim.fn.writefile({
+        "<beans>",
+        '    <bean id="fooService" class="com.example.FooService"/>',
+        '    <bean id="otherFooService" class="com.other.FooService"/>',
+        '    <!-- <bean id="commentedOut" class="com.example.FooService"/> -->',
+        "</beans>",
+      }, root .. "/src/main/resources/beans.xml")
+      return root
+    end
+
+    local function buf_content(file)
+      local saved_ei = vim.o.eventignore
+      vim.o.eventignore = "all"
+      local bufnr = vim.fn.bufadd(file)
+      vim.fn.bufload(bufnr)
+      vim.o.eventignore = saved_ei
+      return table.concat(vim.api.nvim_buf_get_lines(bufnr, 0, -1, false), "\n")
+    end
+
+    it("Apply renames the class + both same-line field occurrences + the live XML bean, and nothing else", function()
+      local refactor = require("tetravim.util.edit.refactor")
+      local root = make_fixture()
+      local java_file = root .. "/src/main/java/com/example/FooService.java"
+      local consumer_file = root .. "/src/main/java/com/example/Consumer.java"
+      local xml_file = root .. "/src/main/resources/beans.xml"
+      local other_service_file = root .. "/src/main/java/com/other/FooService.java"
+
+      -- refactor._do_rename fans the rename out through
+      -- util/lsp_async.request_all_async, which calls client.request(...)
+      -- directly (NOT vim.lsp.buf_request_all), so the mocked response lives
+      -- on the fake client itself.
+      local rename_edit = {
+        changes = {
+          ["file://" .. java_file] = {
+            {
+              range = { start = { line = 5, character = 13 }, ["end"] = { line = 5, character = 23 } },
+              newText = "BarService",
+            },
+          },
+        },
+      }
+      local fake_client = {
+        id = 9001,
+        name = "jdtls",
+        offset_encoding = "utf-16",
+        config = { root_dir = root },
+        request = function(_, method, _, handler)
+          if method ~= "textDocument/rename" then
+            return false
+          end
+          handler(nil, rename_edit)
+          return true, 1
+        end,
+        cancel_request = function() end,
+      }
+      local orig_get_clients = vim.lsp.get_clients
+      local orig_select = vim.ui.select
+      vim.lsp.get_clients = function(_)
+        return { fake_client }
+      end
+      vim.ui.select = function(_, _, on_choice)
+        on_choice("Apply")
+      end
+
+      vim.cmd("noautocmd edit " .. vim.fn.fnameescape(java_file))
+      vim.api.nvim_win_set_cursor(0, { 6, 13 })
+      refactor.project_rename("BarService")
+
+      vim.wait(10000, function()
+        return not action_lock.is_busy() and buf_content(java_file):find("BarService", 1, true) ~= nil
+      end, 50)
+
+      vim.lsp.get_clients = orig_get_clients
+      vim.ui.select = orig_select
+
+      local foo = buf_content(java_file)
+      assert.is_truthy(foo:find("public class BarService", 1, true))
+      assert.is_falsy(foo:find("BarServiceBarService", 1, true)) -- LSP/Spring overlap not double-spliced
+
+      assert.is_truthy(
+        buf_content(consumer_file):find("private BarService fooService = BarService.createDefault();", 1, true)
+      )
+
+      local xml = buf_content(xml_file)
+      assert.is_truthy(xml:find('class="com.example.BarService"', 1, true))
+      assert.is_truthy(xml:find('<!-- <bean id="commentedOut" class="com.example.FooService"/> -->', 1, true))
+      assert.is_truthy(xml:find('class="com.other.FooService"', 1, true))
+      assert.is_truthy(buf_content(other_service_file):find("public class FooService", 1, true))
+
+      vim.fn.delete(root, "rf")
+    end)
+
+    it("a colliding rename (LSP error response) aborts before the quickfix preview and touches no file", function()
+      local refactor = require("tetravim.util.edit.refactor")
+      local root = make_fixture()
+      local java_file = root .. "/src/main/java/com/example/FooService.java"
+      local before = table.concat(vim.fn.readfile(java_file), "\n")
+
+      local fake_client = { id = 9003, name = "jdtls", offset_encoding = "utf-16", config = { root_dir = root } }
+      local orig_get_clients = vim.lsp.get_clients
+      local orig_buf_request_all = vim.lsp.buf_request_all
+      local orig_select = vim.ui.select
+      local orig_notify = vim.notify
+      local select_called = false
+      local saw_error = false
+      vim.lsp.get_clients = function(_)
+        return { fake_client }
+      end
+      vim.lsp.buf_request_all = function(_, _, _, handler)
+        handler({ [fake_client.id] = { err = { message = "Element already exists: Consumer" } } })
+      end
+      vim.ui.select = function()
+        select_called = true
+      end
+      vim.notify = function(_, level)
+        if level == vim.log.levels.ERROR then
+          saw_error = true
+        end
+      end
+
+      vim.cmd("noautocmd edit " .. vim.fn.fnameescape(java_file))
+      vim.api.nvim_win_set_cursor(0, { 6, 13 })
+      refactor.project_rename("Consumer")
+      vim.wait(2000, function()
+        return not action_lock.is_busy()
+      end, 20)
+
+      vim.lsp.get_clients = orig_get_clients
+      vim.lsp.buf_request_all = orig_buf_request_all
+      vim.ui.select = orig_select
+      vim.notify = orig_notify
+
+      assert.is_false(select_called, "the quickfix confirm must never be shown for a colliding rename")
+      assert.is_true(saw_error, "a visible ERROR naming the conflict is required")
+      assert.are.equal(before, table.concat(vim.fn.readfile(java_file), "\n"))
+
+      vim.fn.delete(root, "rf")
+    end)
+
+    it("scan_root_async still finds real Spring references via the grep fallback when rg is unavailable", function()
+      local ts = require("tetravim.util.edit.refactor_treesitter")
+      local root = vim.fn.tempname()
+      vim.fn.mkdir(root .. "/com/example", "p")
+      vim.fn.writefile({
+        "package com.example;",
+        "",
+        "import org.springframework.beans.factory.annotation.Autowired;",
+        "",
+        "public class Consumer {",
+        "  @Autowired",
+        "  private FooService fooService;",
+        "}",
+      }, root .. "/com/example/Consumer.java")
+
+      local orig_system = vim.system
+      vim.system = function(cmd, opts, callback)
+        if cmd[1] == "rg" then
+          error("rg forcibly disabled for this test (grep-fallback coverage)")
+        end
+        return orig_system(cmd, opts, callback)
+      end
+
+      local result = nil
+      ts.scan_root_async(root, "FooService", "com.example", function(items)
+        result = items
+      end)
+      vim.wait(10000, function()
+        return result ~= nil
+      end, 50)
+      vim.system = orig_system
+
+      assert.is_not_nil(result, "scan_root_async (grep fallback) did not complete within the wait window")
+      assert.are.equal(1, #result)
+      assert.are.equal("autowired", result[1].kind)
+
+      vim.fn.delete(root, "rf")
+    end)
+  end)
+
+  -- Migrated from scripts/validate-refactor.sh step [1/5]: the static guarantee
+  -- that <leader>cr is bound at ftplugin top level (before on_attach), so the
+  -- "no JVM LSP attached" row still gets project_rename's own notify. The
+  -- dynamic wiring tests above prove the mapping exists and dispatches; this
+  -- guards the ordering the dynamic test cannot see.
+  it("ftplugin/java.lua binds <leader>cr before on_attach, and ftplugin/kotlin.lua exists + wires refactor", function()
+    local java_src = assert(io.open("ftplugin/java.lua", "r")):read("*a")
+    assert.is_truthy(java_src:match("tetravim%.util%.edit%.refactor"))
+    local cr_set = java_src:find("<leader>cr", 1, true)
+    local oa_pos = java_src:find("on_attach", 1, true)
+    assert.is_truthy(cr_set, "ftplugin/java.lua must bind <leader>cr")
+    assert.is_true(not oa_pos or cr_set < oa_pos, "<leader>cr must be bound before on_attach")
+
+    local kotlin_fh = io.open("ftplugin/kotlin.lua", "r")
+    assert.is_truthy(kotlin_fh, "ftplugin/kotlin.lua must exist")
+    local kotlin_src = kotlin_fh:read("*a")
+    assert.is_truthy(kotlin_src:match("tetravim%.util%.edit%.refactor"))
+    assert.is_truthy(kotlin_src:match("<leader>cr"))
   end)
 end)

@@ -12,7 +12,7 @@
 -- util/docgen so this spec stays a thin shim:
 --   <leader>cg  doc stub for the nearest function / method
 --   <leader>cG  doc stub for the enclosing class / type
--- (<leader>cj* / <leader>cn* are already claimed buffer-locally by the JVM
+-- (<leader>cj* / <leader>cp* are already claimed buffer-locally by the JVM
 --  build-sync and package.json version-lens namespaces respectively.)
 
 return {
@@ -23,7 +23,7 @@ return {
       {
         "<leader>cg",
         function()
-          require("tetravim.util.docgen").generate("func")
+          require("tetravim.util.edit.docgen").generate("func")
         end,
         mode = { "n" },
         desc = "Generate Doc (function)",
@@ -31,7 +31,7 @@ return {
       {
         "<leader>cG",
         function()
-          require("tetravim.util.docgen").generate("class")
+          require("tetravim.util.edit.docgen").generate("class")
         end,
         mode = { "n" },
         desc = "Generate Doc (class/type)",

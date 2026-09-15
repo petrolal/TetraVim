@@ -1,7 +1,7 @@
 -- Autocompletion / IntelliSense wiring -- shared capabilities + cmp stack
 
-describe("tetravim.util.lsp_capabilities", function()
-  local caps_mod = require("tetravim.util.lsp_capabilities")
+describe("tetravim.util.lsp.capabilities", function()
+  local caps_mod = require("tetravim.util.lsp.capabilities")
 
   it("returns a fresh capabilities table each call (no shared mutation)", function()
     local a = caps_mod.make()
@@ -72,18 +72,67 @@ end)
 describe("shared capabilities are threaded into every server", function()
   it("lsp-core.lua uses the wildcard config and the fallback path", function()
     local src = assert(io.open("lua/tetravim/plugins/lsp-core.lua", "r")):read("*a")
-    assert.is_truthy(src:match("lsp_capabilities"))
+    assert.is_truthy(src:match("lsp%.capabilities"))
     assert.is_truthy(src:match('vim%.lsp%.config%("%*"'))
     assert.is_truthy(src:match("capabilities = vim%.deepcopy%(capabilities%)"))
   end)
 
   it("ftplugin/java.lua injects it into the jdtls config", function()
     local src = assert(io.open("ftplugin/java.lua", "r")):read("*a")
-    assert.is_truthy(src:match('capabilities = require%("tetravim%.util%.lsp_capabilities"%)%.make%(%)'))
+    assert.is_truthy(src:match('capabilities = require%("tetravim%.util%.lsp%.capabilities"%)%.make%(%)'))
   end)
 
   it("lsp-scala.lua injects it into the metals config", function()
     local src = assert(io.open("lua/tetravim/plugins/lsp-scala.lua", "r")):read("*a")
-    assert.is_truthy(src:match('metals_config%.capabilities = require%("tetravim%.util%.lsp_capabilities"%)'))
+    assert.is_truthy(src:match('metals_config%.capabilities = require%("tetravim%.util%.lsp%.capabilities"%)'))
+  end)
+end)
+
+describe("autocompletion runtime behavior (migrated from validate-completion.sh)", function()
+  it("nvim-cmp loads and is configured with an LSP source + snippet expander", function()
+    local code = [[
+      require('lazy').load({ plugins = { 'LuaSnip', 'nvim-cmp' } })
+      local cmp = require('cmp')
+      assert(pcall(require, 'cmp_nvim_lsp'), 'cmp-nvim-lsp not resolvable after load')
+      assert(pcall(require, 'luasnip'), 'luasnip not resolvable after load')
+      local cfg = cmp.get_config()
+      assert(type(cfg.snippet) == 'table' and type(cfg.snippet.expand) == 'function', 'no snippet expander wired')
+      local names = {}
+      for _, s in ipairs(cfg.sources or {}) do names[s.name] = true end
+      assert(names.nvim_lsp, 'nvim_lsp source missing from cmp config')
+      assert(names.luasnip, 'luasnip source missing from cmp config')
+      assert(names.path and names.buffer, 'path/buffer sources missing from cmp config')
+      vim.cmd('qa!')
+    ]]
+    local out = vim.fn.system({ "nvim", "--headless", "-u", "init.lua", "-c", "lua " .. code })
+    assert.are.equal(0, vim.v.shell_error, out)
+  end)
+
+  it("completeopt is menuone,noselect so nothing is auto-accepted", function()
+    local code = [[
+      require('lazy').load({ plugins = { 'nvim-cmp' } })
+      local co = vim.opt.completeopt:get()
+      assert(vim.tbl_contains(co, 'noselect'), 'completeopt missing noselect, got: ' .. vim.inspect(co))
+      assert(vim.tbl_contains(co, 'menuone'), 'completeopt missing menuone, got: ' .. vim.inspect(co))
+      vim.cmd('qa!')
+    ]]
+    local out = vim.fn.system({ "nvim", "--headless", "-u", "init.lua", "-c", "lua " .. code })
+    assert.are.equal(0, vim.v.shell_error, out)
+  end)
+
+  it("a server routed through lsp-core carries the cmp capabilities", function()
+    local code = [[
+      require('lazy').load({ plugins = { 'nvim-cmp', 'nvim-lspconfig' } })
+      local resolved = vim.lsp.config.lua_ls
+      assert(type(resolved) == 'table', 'vim.lsp.config.lua_ls did not resolve')
+      local item = resolved.capabilities
+        and resolved.capabilities.textDocument
+        and resolved.capabilities.textDocument.completion
+        and resolved.capabilities.textDocument.completion.completionItem
+      assert(item and item.snippetSupport == true, 'lua_ls not started with cmp completion capabilities')
+      vim.cmd('qa!')
+    ]]
+    local out = vim.fn.system({ "nvim", "--headless", "-u", "init.lua", "-c", "lua " .. code })
+    assert.are.equal(0, vim.v.shell_error, out)
   end)
 end)

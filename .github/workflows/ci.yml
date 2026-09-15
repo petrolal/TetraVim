@@ -2,9 +2,9 @@ name: CI
 
 # Runs the validation apparatus that already lives in this repo -- stylua,
 # shell-syntax checks, the plenary busted suite (lua/tetravim/tests/) and the
-# scripts/validate*.sh smoke suites -- on every push to main and every PR, so a
-# regression is caught here instead of the next time someone runs validate.sh
-# by hand.
+# native headless provisioning smoke (tetravim.core.setup) -- on every push to
+# main and every PR, so a regression is caught here instead of at the next
+# clone.
 
 on:
   push:
@@ -31,7 +31,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: stylua --check
-        uses: JohnnyMorganz/stylua-action@v4
+        uses: JohnnyMorganz/stylua-action@v5
         with:
           token: ${{ github.token }}
           version: latest
@@ -40,24 +40,15 @@ jobs:
 
       - name: Shell syntax (bash -n)
         run: |
-          rc=0
-          for f in bootstrap.sh scripts/*.sh; do
-            [ -e "$f" ] || continue
-            if bash -n "$f"; then
-              echo "ok   $f"
-            else
-              echo "FAIL $f"
-              rc=1
-            fi
-          done
-          exit $rc
+          bash -n bootstrap.sh
+          bash -n install.sh
 
       - name: shellcheck (advisory, non-blocking)
         continue-on-error: true
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq shellcheck
-          shellcheck -S warning bootstrap.sh scripts/*.sh || true
+          shellcheck -S warning bootstrap.sh install.sh || true
 
   # --------------------------------------------------------------------------
   # The plenary busted spec suite (lua/tetravim/tests/*_spec.lua). "stable" is
@@ -90,8 +81,23 @@ jobs:
           restore-keys: |
             nvim-test-${{ matrix.neovim }}-
 
+      - name: Link Neovim config
+        run: |
+          mkdir -p "${XDG_CONFIG_HOME:-$HOME/.config}"
+          ln -sf "$GITHUB_WORKSPACE" "${XDG_CONFIG_HOME:-$HOME/.config}/nvim"
+
+      - name: Install tree-sitter CLI
+        run: npm install -g tree-sitter-cli
+
       - name: Sync plugins
         run: nvim --headless -u init.lua "+Lazy! sync" +qa
+
+      - name: Install Tree-sitter parsers
+        run: |
+          nvim --headless -u init.lua \
+            -c "Lazy! load nvim-treesitter" \
+            -c "lua local t = require('nvim-treesitter').install({ 'java', 'kotlin', 'scala', 'lua', 'regex' }); if t and t.wait then t:wait(120000) end" \
+            -c "qa!"
 
       - name: Run plenary busted suite
         run: |
@@ -124,13 +130,10 @@ jobs:
           if-no-files-found: ignore
 
   # --------------------------------------------------------------------------
-  # scripts/validate.sh (7-stage aggregate) plus every standalone
-  # scripts/validate-*.sh component suite. Provisioning goes through the repo's
-  # own headless entrypoint; real-binary steps SKIP when a Mason tool is
-  # absent, so this stays green without a full tool-chain.
+  # Native headless setup & provisioning smoke test (tetravim.core.setup)
   # --------------------------------------------------------------------------
   smoke:
-    name: Validation suite (scripts/validate*.sh)
+    name: Native Setup & Provisioning Smoke
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -151,34 +154,62 @@ jobs:
           restore-keys: |
             nvim-smoke-
 
-      - name: Headless provisioning (best-effort, DEGRADED-tolerant)
-        run: bash scripts/headless-setup.sh
-
-      - name: Run validation scripts
+      - name: Link Neovim config
         run: |
-          set -uo pipefail
-          failed=()
+          mkdir -p "${XDG_CONFIG_HOME:-$HOME/.config}"
+          ln -sf "$GITHUB_WORKSPACE" "${XDG_CONFIG_HOME:-$HOME/.config}/nvim"
 
-          run() {
-            echo "::group::$1"
-            if bash "$1" </dev/null; then
-              echo "PASS $1"
-            else
-              echo "FAIL $1"
-              failed+=("$1")
-            fi
-            echo "::endgroup::"
-          }
+      - name: Install tree-sitter CLI
+        run: npm install -g tree-sitter-cli
 
-          # Aggregate suite first; it already invokes validate-test-coverage.sh.
-          run scripts/validate.sh
-          for s in scripts/validate-*.sh; do
-            [ "$s" = "scripts/validate-test-coverage.sh" ] && continue
-            run "$s"
+      - name: Native headless provisioning (tetravim.core.setup)
+        run: nvim --headless -u init.lua -c "lua require('tetravim.core.setup').run()" -c "qa!"
+
+      - name: Verify health snapshot
+        run: nvim --headless -u init.lua -c "lua io.write(require('tetravim.core.health').json() .. '\n')" -c "qa!"
+
+      # --------------------------------------------------------------------
+      # Startup-time budget. `defaults.lazy = false`, so every plugin loads
+      # on startup -- a spec that pulls in something heavy on the eager path
+      # shows up here. Measure a few runs (plugins already synced above),
+      # take the fastest, and fail if it blows the ceiling.
+      # --------------------------------------------------------------------
+      - name: Startup-time budget
+        run: |
+          set -o pipefail
+          BUDGET_MS=1200
+          best=999999
+          for i in 1 2 3 4 5; do
+            rm -f startuptime.log
+            nvim --headless -u init.lua --startuptime startuptime.log +qa >/dev/null 2>&1 || true
+            # Last line of --startuptime output is "<total>  <total>: --- NVIM STARTED ---"
+            ms=$(awk 'END { print int($1) }' startuptime.log)
+            echo "run $i: ${ms}ms"
+            if [ "$ms" -lt "$best" ]; then best=$ms; fi
           done
+          echo "best startup: ${best}ms (budget ${BUDGET_MS}ms)"
 
-          if ((${#failed[@]})); then
-            printf '::error::validation failure: %s\n' "${failed[*]}"
+          # Attribution: the 15 costliest sourced files / require()s from the
+          # last run, by *self* time (col 3 of --startuptime). A budget
+          # regression is almost always one spec pulling something heavy onto
+          # the eager path -- this points straight at it instead of leaving a
+          # bare "total went up".
+          echo "--- slowest sources / requires (self ms) ---"
+          awk '$4 == "sourcing" || $4 ~ /^require\(/ {
+                 self = $3; $1 = $2 = $3 = ""; sub(/^ +/, "");
+                 printf "%9.3f  %s\n", self, $0
+               }' startuptime.log | sort -rn | head -n 15 || true
+
+          if [ "$best" -gt "$BUDGET_MS" ]; then
+            echo "::error::startup ${best}ms exceeds ${BUDGET_MS}ms budget"
             exit 1
           fi
-          echo "All validation scripts passed."
+
+      - name: Upload startuptime log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: startuptime-log
+          path: startuptime.log
+          if-no-files-found: ignore
+

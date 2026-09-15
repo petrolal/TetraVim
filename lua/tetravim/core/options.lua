@@ -5,6 +5,12 @@ vim.g.maplocalleader = "\\"
 
 vim.g.have_nerd_font = true
 
+-- Disable unused providers to suppress vim.provider healthcheck warnings.
+-- TetraVim has no Perl or Ruby plugins; disabling them avoids spurious
+-- "Neovim::Ext not installed" / "ruby and gem must be in $PATH" noise.
+vim.g.loaded_perl_provider = 0
+vim.g.loaded_ruby_provider = 0
+
 -- Enterprise headless mode flag (Story 5‑2)
 vim.g.tetravim_headless = false
 
@@ -19,8 +25,18 @@ end
 -- Enable 24-bit true color support for theme highlights (Story 5.1)
 vim.opt.termguicolors = true
 
--- Sync yank/paste with the OS clipboard (fixes y/p not reaching system clipboard)
-vim.opt.clipboard = "unnamedplus"
+-- Prompt to confirm save when closing a buffer with unsaved changes (Story 27.2)
+vim.opt.confirm = true
+
+-- Sync yank/paste with the OS clipboard (fixes y/p not reaching system
+-- clipboard). Deferred, and skipped entirely in headless mode: setting this
+-- at load time makes the first yank probe for xclip/xsel/wl-copy, which on a
+-- bare SSH / CI session with no provider is wasted work (and noise).
+vim.schedule(function()
+  if not vim.g.tetravim_headless then
+    vim.opt.clipboard = "unnamedplus"
+  end
+end)
 
 -- Visual polish -------------------------------------------------------------
 -- One consistent rounded frame around every plugin-agnostic floating window
@@ -39,6 +55,11 @@ vim.opt.cursorline = true
 -- Keep a little breathing room around the cursor while scrolling.
 vim.opt.scrolloff = 6
 vim.opt.sidescrolloff = 8
+
+-- Idle delay before `CursorHold` fires. The default 4s makes LSP
+-- symbol-under-cursor highlighting (wired per client in util/lsp_attach.lua)
+-- feel broken; 300ms is the usual IDE-like "highlight usages" cadence.
+vim.opt.updatetime = 300
 
 -- Persistent undo: keep the full undo tree on disk so it survives a restart.
 -- This is what turns undotree (editor-undotree.lua) into a real "Local

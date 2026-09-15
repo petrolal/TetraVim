@@ -28,6 +28,7 @@ return {
         override = {
           ["vim.lsp.util.convert_input_to_markdown_lines"] = true,
           ["vim.lsp.util.set_hl_from_snippet"] = true,
+          ["vim.lsp.util.stylize_markdown"] = true,
         },
       },
       messages = {
@@ -39,7 +40,7 @@ return {
         backend = "nui",
       },
       notify = {
-        enabled = false,
+        enabled = true,
       },
       views = {
         mini = {

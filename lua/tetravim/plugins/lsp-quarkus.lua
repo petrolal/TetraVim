@@ -26,34 +26,33 @@ return {
     "JavaHello/quarkus.nvim",
     dependencies = { "JavaHello/microprofile.nvim" },
     ft = { "java", "yaml", "jproperties", "html" },
-    config = function()
-      local fw = require("tetravim.util.jvm_frameworks")
-      local qp = fw.quarkus_paths()
-      local mp = fw.microprofile_paths()
-      if not (qp and mp) then
-        -- Jars not fetched -- see scripts/fetch-jvm-lsp-jars.sh.
-        return
+    init = function()
+      local function cmd_handler(cmd_opts)
+        local force = cmd_opts.bang or (cmd_opts.args == "--force")
+        require("tetravim.util.jvm.frameworks").fetch_jars({ force = force })
       end
 
-      local java_bin = fw.java_cmd()
-      local caps = require("tetravim.util.lsp_capabilities").make()
+      vim.api.nvim_create_user_command("TetraVimFetchJvmLspJars", cmd_handler, {
+        bang = true,
+        nargs = "?",
+        desc = "Download Quarkus and MicroProfile language server jars from Open VSX",
+      })
 
-      -- Order matters: `quarkus.setup` registers `com.redhat.quarkus.ls.jar`
-      -- with the microprofile module, so it must run before the lsp4mp launch
-      -- builds its classpath.
-      require("quarkus").setup({
-        java_bin = java_bin,
-        ls_path = qp.ls_path,
-        jdt_extensions_path = qp.jdt_extensions_path,
-        microprofile_ext_path = qp.microprofile_ext_path,
+      vim.api.nvim_create_user_command("TetraVimInstallJvmLsp", cmd_handler, {
+        bang = true,
+        nargs = "?",
+        desc = "Download Quarkus and MicroProfile language server jars from Open VSX (alias)",
       })
-      require("microprofile").setup({
-        java_bin = java_bin,
-        ls_path = mp.ls_path,
-        jdt_extensions_path = mp.jdt_extensions_path,
-      })
-      require("quarkus.launch").setup({ capabilities = vim.deepcopy(caps) })
-      require("microprofile.launch").setup({ capabilities = vim.deepcopy(caps) })
+    end,
+    config = function()
+      -- Activation is opt-in (`<leader>jsq` / persisted flag) and RAM-guarded:
+      -- each server is a separate ~1 GiB JVM on top of jdtls + the Spring Boot
+      -- LS. `jvm_lsp_toggle.activate()` runs the quarkus/microprofile
+      -- `.setup()` + `.launch.setup()` chain that wires the FileType autocmds.
+      local toggle = require("tetravim.util.jvm.lsp_toggle")
+      if toggle.should_autostart() then
+        toggle.activate()
+      end
     end,
   },
 }

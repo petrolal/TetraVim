@@ -7,8 +7,13 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_DIR="$(cd "$SCRIPT_DIR" && pwd)"
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do
+	DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
+	SOURCE="$(readlink "$SOURCE")"
+	[[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+REPO_DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
 
 pass() { echo "  ✔ $*"; }
 warn() { echo "  ⚠ $*"; }
@@ -23,20 +28,95 @@ echo "   TetraVim Neovim: Full Bootstrap               "
 echo "=================================================="
 
 # ============================================================================
+# 0a. Canonical install location — the repo must live at ~/tetravim.nvim, with
+#     ~/.config/nvim symlinked to it. A clone anywhere else relocates itself
+#     here on first run so this is the only installation layout to support.
+# ============================================================================
+section "Canonical install location"
+
+TETRAVIM_HOME="$HOME/tetravim.nvim"
+TETRAVIM_HOME_REAL=""
+[ -e "$TETRAVIM_HOME" ] && TETRAVIM_HOME_REAL="$(cd -P "$TETRAVIM_HOME" && pwd)"
+
+if [ "$REPO_DIR" != "$TETRAVIM_HOME" ] && [ "$REPO_DIR" != "$TETRAVIM_HOME_REAL" ]; then
+	if [ -e "$TETRAVIM_HOME" ]; then
+		BACKUP="$TETRAVIM_HOME.backup.$(date +%s)"
+		warn "$TETRAVIM_HOME already exists (different repo) -- backing up -> $BACKUP"
+		mv "$TETRAVIM_HOME" "$BACKUP"
+	fi
+	warn "Repo is at $REPO_DIR -- relocating to canonical path $TETRAVIM_HOME"
+	mv "$REPO_DIR" "$TETRAVIM_HOME"
+	pass "Repo relocated: $TETRAVIM_HOME"
+	exec bash "$TETRAVIM_HOME/bootstrap.sh" "$@"
+fi
+REPO_DIR="$TETRAVIM_HOME"
+pass "Repo at canonical location: $REPO_DIR"
+
+# ============================================================================
 # 0. Neovim — hard requirement
 # ============================================================================
 section "Neovim"
 if ! command -v nvim >/dev/null 2>&1; then
-	fail "Neovim not found. Install >= 0.10 first."
+	fail "Neovim not found. Install >= 0.11 first."
 	echo "    macOS:  brew install neovim"
 	echo "    Ubuntu: sudo apt install neovim"
 	echo "    Arch:   sudo pacman -S neovim"
 	exit 1
 fi
+# init.lua hard-fails below 0.11 (vim.lsp.config/enable, vim.diagnostic.jump,
+# winborder); catch it here with an actionable message instead.
+if ! nvim --headless -u NONE -c 'lua os.exit(vim.fn.has("nvim-0.11") == 1 and 0 or 1)' -c 'qa!' >/dev/null 2>&1; then
+	fail "Neovim $(nvim --version | head -n 1 | awk '{print $2}') is too old -- TetraVim requires >= 0.11."
+	exit 1
+fi
 pass "Neovim: $(nvim --version | head -n 1)"
 
 # ============================================================================
-# 1. Link config & sync plugins (idempotent)
+# 0b. Other required/recommended system tools — checked up front so a missing
+#     one is reported before the (slower) plugin sync + provisioning steps,
+#     not discovered later in :checkhealth. Mirrors health/platform.lua's
+#     "TetraVim System Dependencies" section plus the JDK that jdtls/Metals
+#     need to actually launch. None of these are auto-installed here: the
+#     package name/version a user wants varies too much per distro.
+# ============================================================================
+section "Prerequisite tools"
+
+check_prereq() {
+	local bin="$1" required="$2" label="$3"
+	if command -v "$bin" >/dev/null 2>&1; then
+		pass "$bin ready ($label)"
+	elif [ "$required" = "required" ]; then
+		warn "'$bin' not found on \$PATH -- $label"
+	else
+		warn "'$bin' not found on \$PATH -- optional, $label"
+	fi
+}
+
+check_prereq git required "version control, used by lazy.nvim to fetch plugins"
+check_prereq rg required "ripgrep -- Telescope live-grep, snacks.picker (marked REQUIRED by :checkhealth)"
+check_prereq make optional "native build step for some Tree-sitter parsers / telescope-fzf-native"
+if command -v cc >/dev/null 2>&1 || command -v gcc >/dev/null 2>&1 || command -v clang >/dev/null 2>&1; then
+	pass "C compiler ready (Tree-sitter parser / telescope-fzf-native builds)"
+else
+	warn "no C compiler (cc/gcc/clang) found -- Tree-sitter parser and telescope-fzf-native builds will fail"
+fi
+if command -v java >/dev/null 2>&1; then
+	pass "java ready ($(java -version 2>&1 | head -n 1))"
+else
+	warn "'java' not found on \$PATH -- required to launch jdtls (Java) and Metals (Scala); install a JDK 21"
+fi
+
+# ============================================================================
+# 1. Cache cleanup — clear Neovim runtime and Tree-sitter caches
+# ============================================================================
+section "Cache cleanup"
+NVIM_CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/nvim"
+TS_CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/tree-sitter"
+rm -rf "$NVIM_CACHE" "$TS_CACHE"
+pass "Caches cleared ($NVIM_CACHE, $TS_CACHE)"
+
+# ============================================================================
+# 2. Link config & sync plugins (idempotent)
 # ============================================================================
 section "Config & Plugins"
 
@@ -53,30 +133,14 @@ mkdir -p "$(dirname "$NVIM_CONFIG")"
 ln -sf "$REPO_DIR" "$NVIM_CONFIG"
 pass "Config linked: $NVIM_CONFIG -> $REPO_DIR"
 
-if nvim --headless "+Lazy! sync" +qa 2>/dev/null; then
-	pass "Plugins synced"
+if nvim --headless -u "$NVIM_CONFIG/init.lua" -c "lua require('tetravim.core.setup').run()" -c "qa!" 2>/dev/null; then
+	pass "TetraVim native setup complete (plugins synced, Mason tools, LSP jars, Tree-sitter parsers)"
 else
-	warn "Plugin sync had warnings (run :Lazy in nvim to check)"
-fi
-
-# Ensure Mason tools (including grpcurl) are installed
-if nvim --headless +'MasonToolsInstall' +'qa!' 2>/dev/null; then
-	pass "Mason tools installed (grpcurl, etc.)"
-else
-	warn "Mason tools install failed – you may need to run :MasonToolsInstall manually"
-fi
-
-# Quarkus / MicroProfile language-server jars (not in Mason -- pulled from Open
-# VSX). Best-effort: the script always exits 0, and Spring Boot / jdtls are
-# unaffected if it fails.
-if bash "$REPO_DIR/scripts/fetch-jvm-lsp-jars.sh"; then
-	pass "Quarkus / MicroProfile language servers fetched"
-else
-	warn "Quarkus / MicroProfile jar fetch skipped -- run scripts/fetch-jvm-lsp-jars.sh later"
+	warn "TetraVim setup had warnings -- run :TetraVimSetup inside nvim to inspect"
 fi
 
 # ============================================================================
-# 2. Node.js provider & npm tools
+# 3. Node.js provider & npm tools
 #    - neovim npm package  -> vim.provider Node.js
 #    - prettier            -> conform.nvim formatter (web/yaml/json/md)
 # ============================================================================
@@ -100,10 +164,12 @@ else
 	npm_global_install neovim            # Node.js provider for Neovim
 	npm_global_install prettier          # conform formatter: js/ts/yaml/json/md/css/html
 	npm_global_install sonarqube-scanner # `sonar-scanner` CLI: <leader>xsp whole-codebase Sonar scan (connected mode)
+	npm_global_install tree-sitter-cli   # `tree-sitter` CLI: nvim-treesitter "main" branch compiles every parser via `tree-sitter build`
+	npm_global_install @mermaid-js/mermaid-cli  # `mmdc` CLI: Snacks.image renders Mermaid diagrams in docs/markdown
 fi
 
 # ============================================================================
-# 3. Go tools
+# 4. Go tools
 #    - yamlfmt -> conform.nvim YAML formatter
 # ============================================================================
 section "Go tools"
@@ -126,7 +192,7 @@ else
 fi
 
 # ============================================================================
-# 4. Python provider
+# 5. Python provider
 #    - pynvim -> vim.provider Python
 # ============================================================================
 section "Python provider (pynvim)"
@@ -152,17 +218,35 @@ else
 fi
 
 # ============================================================================
-# 5. Tree-sitter parsers
+# 6. Tree-sitter parsers
 #    - regex -> required by noice.nvim cmdline highlighting + snacks.picker
 # ============================================================================
 section "Tree-sitter parsers"
 
 # nvim-treesitter lazy-loads, so :TSInstall is unavailable headlessly.
 # Use the Lua install API with explicit load and a 30-second timeout.
+#
+# The pinned "main" branch (lazy-lock.json) compiles every parser by shelling
+# out to the `tree-sitter` CLI (`tree-sitter build`); without it on $PATH the
+# install fails for every parser with `ENOENT ... 'tree-sitter'`. It's
+# installed above via `npm install -g tree-sitter-cli` (and Mason ships a
+# Ensure tree-sitter CLI is findable on PATH (check Mason bin directory as fallback)
+MASON_BIN="${XDG_DATA_HOME:-$HOME/.local/share}/nvim/mason/bin"
+if [ -d "$MASON_BIN" ] && ! echo "$PATH" | grep -q "$MASON_BIN"; then
+	export PATH="$MASON_BIN:$PATH"
+fi
+
+# Clean any stale tree-sitter locks from interrupted builds
+rm -rf "${XDG_CACHE_HOME:-$HOME/.cache}/tree-sitter/lock" 2>/dev/null || true
+
+if ! command -v tree-sitter >/dev/null 2>&1; then
+	warn "'tree-sitter' CLI not on \$PATH -- parser compilation will fail."
+	warn "Install it with:  npm install -g tree-sitter-cli   (or :MasonInstall tree-sitter-cli)"
+fi
 
 nvim --headless -u "$NVIM_CONFIG/init.lua" \
 	-c "Lazy! load nvim-treesitter" \
-	-c "lua require('nvim-treesitter.install').install({'regex'}):wait(30000)" \
+	-c "lua require('nvim-treesitter').install({ 'regex' }):wait(30000)" \
 	-c "qa!" 2>/dev/null || true
 
 # Verify it's now loadable
@@ -171,11 +255,11 @@ if nvim --headless -u "$NVIM_CONFIG/init.lua" \
 	-c "qa!" 2>/dev/null | grep -q "^true"; then
 	pass "regex Tree-sitter parser ready"
 else
-	warn "TSInstall regex may need to be run manually inside nvim (:TSInstall regex)"
+	warn "regex parser not ready -- check 'tree-sitter' is on \$PATH, then run ':TSInstall regex' inside nvim"
 fi
 
 # ============================================================================
-# 6. PDF & LaTeX preview tools (snacks.nvim)
+# 7. PDF & LaTeX preview tools (snacks.nvim)
 #    - gs (ghostscript)    -> PDF rendering
 #    - tectonic / pdflatex -> LaTeX compilation
 # ============================================================================
@@ -250,7 +334,7 @@ else
 fi
 
 # ============================================================================
-# 7. gRPC tools
+# 8. gRPC tools
 # ============================================================================
 section "gRPC tools"
 if command -v grpcurl >/dev/null 2>&1; then
@@ -271,7 +355,7 @@ else
 fi
 
 # ============================================================================
-# 8. Security & vulnerability scanners
+# 9. Security & vulnerability scanners
 # ============================================================================
 section "Security scanners"
 if command -v osv-scanner >/dev/null 2>&1; then
@@ -294,6 +378,148 @@ else
 fi
 
 # ============================================================================
+# 10. Core CLI tools
+#    - rg (ripgrep) -> project-wide search: safe-rename reference scan, Spring
+#                      Boot discovery, snacks.picker (:checkhealth marks it
+#                      REQUIRED)
+#    - jq           -> <leader>ahj HTTP response filtering
+#    - curl         -> kulala.nvim request backend + Spring Initializr download
+#    - unzip        -> Spring Initializr project unpack
+# ============================================================================
+section "Core CLI tools"
+
+pkg_mgr=""
+for m in pacman apt-get dnf brew; do
+	if command -v "$m" >/dev/null 2>&1; then
+		pkg_mgr="${m/apt-get/apt}"
+		break
+	fi
+done
+
+for tool in rg jq curl unzip; do
+	if command -v "$tool" >/dev/null 2>&1; then
+		pass "$tool ready"
+		continue
+	fi
+	pkg="$tool"
+	[ "$tool" = "rg" ] && pkg="ripgrep"
+	if [ -n "$pkg_mgr" ]; then
+		warn "'$tool' missing. Attempting installation..."
+		install_system_pkgs "$pkg_mgr" "$pkg" || warn "Could not install $pkg -- install it manually"
+	else
+		warn "'$tool' missing and no known package manager -- install '$pkg' manually"
+	fi
+done
+
+# ============================================================================
+# 11. Scala lint & format tools (scalafmt / scalastyle)
+#     Not in the Mason registry -- installed via Coursier when available.
+#     Metals still provides semantic diagnostics without these; they add the
+#     <leader>xlF project formatting and optional style linting.
+# ============================================================================
+section "Scala lint & format tools (scalafmt / scalastyle)"
+
+if command -v cs >/dev/null 2>&1 || command -v coursier >/dev/null 2>&1; then
+	CS="$(command -v cs 2>/dev/null || command -v coursier)"
+	for app in scalafmt scalastyle; do
+		if command -v "$app" >/dev/null 2>&1; then
+			pass "$app already installed"
+		else
+			echo "  -> $CS install $app"
+			if "$CS" install "$app" >/dev/null 2>&1; then
+				pass "$app installed via coursier"
+			else
+				warn "coursier could not install $app -- install it manually if you need Scala $app"
+			fi
+		fi
+	done
+else
+	warn "coursier (cs) not found -- skipping scalafmt/scalastyle. Install Coursier, then: cs install scalafmt scalastyle"
+fi
+
+# ============================================================================
+# 12. async-profiler (JVM sampling profiler)
+#     util/profiling.lua shells out to `asprof` / `profiler.sh`; without it the
+#     <leader>jps (start) / <leader>jpx (stop) / <leader>jpv (view) keymaps
+#     error with "async-profiler binary not found in $PATH".
+# ============================================================================
+section "async-profiler (JVM profiler)"
+
+AP_VERSION="3.0"
+ap_present() {
+	command -v asprof >/dev/null 2>&1 ||
+		command -v async-profiler >/dev/null 2>&1 ||
+		command -v profiler.sh >/dev/null 2>&1
+}
+
+if ap_present; then
+	pass "async-profiler already installed ($(command -v asprof 2>/dev/null || command -v profiler.sh 2>/dev/null || command -v async-profiler))"
+elif command -v yay >/dev/null 2>&1; then
+	echo "  -> yay -S --noconfirm --needed async-profiler"
+	yay -S --noconfirm --needed async-profiler || warn "yay could not install async-profiler"
+elif command -v brew >/dev/null 2>&1; then
+	install_system_pkgs brew async-profiler || warn "brew could not install async-profiler"
+fi
+
+if ! ap_present; then
+	# No distro package -- fetch the upstream release tarball into
+	# ~/.local/share and symlink the launcher onto ~/.local/bin.
+	case "$(uname -s)" in
+	Linux) ap_os="linux" ;;
+	Darwin) ap_os="macos" ;;
+	*) ap_os="" ;;
+	esac
+	case "$(uname -m)" in
+	x86_64 | amd64) ap_arch="x64" ;;
+	aarch64 | arm64) ap_arch="arm64" ;;
+	*) ap_arch="" ;;
+	esac
+
+	if [ -n "$ap_os" ] && [ -n "$ap_arch" ] && command -v curl >/dev/null 2>&1; then
+		if [ "$ap_os" = "macos" ]; then
+			ap_tarball="async-profiler-${AP_VERSION}-macos.tar.gz"
+		else
+			ap_tarball="async-profiler-${AP_VERSION}-${ap_os}-${ap_arch}.tar.gz"
+		fi
+		ap_url="https://github.com/async-profiler/async-profiler/releases/download/v${AP_VERSION}/${ap_tarball}"
+		ap_dest="${XDG_DATA_HOME:-$HOME/.local/share}/tetravim/async-profiler"
+		ap_bin_dir="$HOME/.local/bin"
+		echo "  -> downloading $ap_url"
+		mkdir -p "$ap_dest" "$ap_bin_dir"
+		if curl -fsSL "$ap_url" | tar -xz -C "$ap_dest" --strip-components=1; then
+			ln -sf "$ap_dest/bin/asprof" "$ap_bin_dir/asprof"
+			if [ -x "$ap_dest/bin/asprof" ]; then
+				pass "async-profiler $AP_VERSION installed -> $ap_bin_dir/asprof"
+			else
+				warn "async-profiler tarball extracted but bin/asprof is missing"
+			fi
+			if ! echo "$PATH" | grep -q "$ap_bin_dir"; then
+				warn "Add $ap_bin_dir to your PATH (e.g. in ~/.bashrc or ~/.zshrc)"
+			fi
+		else
+			warn "async-profiler download/extract failed -- install it manually from"
+			warn "  https://github.com/async-profiler/async-profiler/releases"
+		fi
+	else
+		warn "Cannot auto-install async-profiler (unsupported platform or curl missing)."
+		warn "Download from https://github.com/async-profiler/async-profiler/releases and put 'asprof' on \$PATH"
+	fi
+fi
+
+# async-profiler needs relaxed perf_event access to sample a running JVM.
+if [ "$(uname -s)" = "Linux" ] && [ -r /proc/sys/kernel/perf_event_paranoid ]; then
+	ap_paranoid="$(cat /proc/sys/kernel/perf_event_paranoid)"
+	case "$ap_paranoid" in
+	-1 | 0 | 1) pass "kernel.perf_event_paranoid=$ap_paranoid (async-profiler can sample the JVM)" ;;
+	*)
+		warn "kernel.perf_event_paranoid=$ap_paranoid -- async-profiler needs <= 1. Run:"
+		warn "  sudo sysctl kernel.perf_event_paranoid=1 kernel.kptr_restrict=0"
+		warn "  (persist via a file in /etc/sysctl.d/)"
+		;;
+	esac
+fi
+
+# ============================================================================
 # Done
 # ============================================================================
 
@@ -312,3 +538,5 @@ echo "  mason    : Ruby/PHP/Julia/Perl -- not used by this JVM distribution"
 echo "  devops   : sam / cfn-guard / glab -- optional; install manually if needed"
 echo "  security : osv-scanner -- optional CVE scanning; install manually if needed"
 echo "  snacks   : gs / tectonic / pdflatex -- optional PDF/LaTeX rendering"
+echo "  profiler : async-profiler -- needs kernel.perf_event_paranoid<=1 to sample a JVM"
+echo "  scala    : scalafmt / scalastyle -- only if coursier (cs) is installed"

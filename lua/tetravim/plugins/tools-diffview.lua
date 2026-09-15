@@ -175,7 +175,11 @@ return {
       -- keystroke can never silently discard a side.
       local function confirm_then(action, prompt)
         return function()
-          if vim.fn.confirm(prompt, "&Yes\n&No", 2) == 1 then
+          if
+            vim.g.tetravim_headless
+            or #vim.api.nvim_list_uis() == 0
+            or vim.fn.confirm(prompt, "&Yes\n&No", 2) == 1
+          then
             action()
           end
         end
@@ -281,7 +285,7 @@ return {
       require("diffview").setup(opts)
 
       -- Register the <leader>gx / <leader>gX which-key groups BUFFER-LOCALLY,
-      -- for diffview buffers only (following lang-keymaps.lua's buffer = true
+      -- for diffview buffers only (following lang_keymaps.lua's buffer = true
       -- pattern) -- they are meaningless outside a merge view, and <leader>gc
       -- stays the only global git-conflict group.
       local grp = vim.api.nvim_create_augroup("TetraVimDiffviewWhichKey", { clear = true })

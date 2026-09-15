@@ -20,7 +20,14 @@ vim.api.nvim_create_autocmd("VimEnter", {
   group = augroup("flush_typeahead"),
   callback = function()
     vim.schedule(function()
-      while vim.fn.getchar(1) ~= 0 do
+      -- Bounded drain: a genuine startup typeahead buffer is a handful of
+      -- stray keys, so cap the loop. An unbounded `while getchar(1) ~= 0`
+      -- would spin forever if some input source keeps `getchar` non-empty
+      -- (paste bracketing, a terminal still streaming its handshake).
+      for _ = 1, 256 do
+        if vim.fn.getchar(1) == 0 then
+          break
+        end
         vim.fn.getchar()
       end
     end)
@@ -103,7 +110,7 @@ vim.api.nvim_create_autocmd("VimEnter", {
   once = true,
   callback = function()
     vim.schedule(function()
-      require("tetravim.util.build-sync-state").run()
+      require("tetravim.util.jvm.build_sync_state").run()
     end)
   end,
 })
@@ -111,9 +118,16 @@ vim.api.nvim_create_autocmd("VimEnter", {
 -- Re-sync Maven/Gradle dependencies whenever the project's build file is
 -- saved -- mirrors IntelliJ's "auto-reload changed Maven/Gradle projects"
 -- behavior instead of requiring a full Neovim restart to pick up new
--- dependencies. build-sync-state.lua's M.syncing guard (see M.run()) makes
+-- dependencies. build_sync_state.lua's M.syncing guard (see M.run()) makes
 -- this safe against overlapping saves -- a save that lands while a sync is
 -- already in flight is a no-op, not a second process.
+--
+-- Debounced: a "Save All" that writes the root pom.xml plus several module
+-- poms, or repeated :w while editing the build file, should trigger one
+-- re-sync a few seconds after the last write -- not one `mvn
+-- dependency:resolve` (a 120s-timeout process) per save. One reusable timer,
+-- restarted on each save.
+local build_sync_timer = assert(vim.uv.new_timer())
 vim.api.nvim_create_autocmd("BufWritePost", {
   group = augroup("build_sync_on_save"),
   -- The first three are bare filenames -- Neovim matches those against just
@@ -123,9 +137,16 @@ vim.api.nvim_create_autocmd("BufWritePost", {
   -- matches that file at any project root, not just one directory up.
   pattern = { "pom.xml", "build.gradle", "build.gradle.kts", "*/gradle/libs.versions.toml" },
   callback = function()
-    local sync_state = require("tetravim.util.build-sync-state")
-    sync_state.reset()
-    sync_state.run()
+    build_sync_timer:stop()
+    build_sync_timer:start(
+      2500,
+      0,
+      vim.schedule_wrap(function()
+        local sync_state = require("tetravim.util.jvm.build_sync_state")
+        sync_state.reset()
+        sync_state.run()
+      end)
+    )
   end,
 })
 
@@ -137,13 +158,23 @@ vim.api.nvim_create_autocmd("TextYankPost", {
   end,
 })
 
--- Resize splits if window got resized
+-- Re-equalize splits when the terminal window is resized. `tabdo` walks
+-- every tabpage, which normally fires BufLeave/BufEnter/WinEnter for each one
+-- (re-triggering LSP/lint/statusline churn just from a resize); suppress that
+-- with `eventignore` for the duration. `wincmd =` already leaves panels that
+-- set `winfixwidth`/`winfixheight` (dap-ui, outline, dadbod, terminal) at
+-- their size.
 vim.api.nvim_create_autocmd({ "VimResized" }, {
   group = augroup("resize_splits"),
   callback = function()
     local current_tab = vim.fn.tabpagenr()
-    vim.cmd("tabdo wincmd =")
-    vim.cmd("tabnext " .. current_tab)
+    local save_ei = vim.o.eventignore
+    vim.o.eventignore = "all"
+    pcall(function()
+      vim.cmd("tabdo wincmd =")
+      vim.cmd("tabnext " .. current_tab)
+    end)
+    vim.o.eventignore = save_ei
   end,
 })
 
@@ -210,19 +241,163 @@ vim.api.nvim_create_autocmd("BufNewFile", {
 -- vim.ui.select; a "(no template)" entry always lets you decline, and it never
 -- overwrites content an earlier hook (e.g. the Java skeleton above) inserted.
 -- Disable entirely with `vim.g.tetravim_new_file_prompt = false`.
-require("tetravim.util.filetemplate").setup_new_file_prompt()
+require("tetravim.util.edit.filetemplate").setup_new_file_prompt()
 
--- Native LSP CodeLens auto-refresh for Java & Kotlin buffers
-vim.api.nvim_create_autocmd({ "BufEnter", "BufWritePost", "InsertLeave" }, {
+-- Native LSP CodeLens auto-refresh for Java & Kotlin buffers.
+-- Deliberately NOT on InsertLeave: that fires on every exit from insert mode
+-- and each refresh is a codeLens round-trip to jdtls -- on a large class
+-- that's a steady stream of requests for no visible benefit between saves.
+-- BufEnter + BufWritePost is what actually changes the lenses.
+-- Debounced per buffer: `BufEnter` fires on every window/tab hop back to a
+-- Java/Kotlin file, and each refresh is a codeLens round-trip to jdtls. A
+-- 250ms per-buffer timer collapses a burst of hops into a single request and
+-- keeps the churn off the UI thread. Timers are closed on BufWipeout so the
+-- table can't leak libuv handles over a long session.
+local codelens_timers = {}
+
+local function codelens_refresh(bufnr)
+  if not vim.api.nvim_buf_is_valid(bufnr) then
+    return
+  end
+  for _, client in ipairs(vim.lsp.get_clients({ bufnr = bufnr })) do
+    if client:supports_method("textDocument/codeLens") then
+      pcall(vim.lsp.codelens.refresh, { bufnr = bufnr })
+      break
+    end
+  end
+end
+
+vim.api.nvim_create_autocmd({ "BufEnter", "BufWritePost" }, {
   group = augroup("lsp_codelens"),
   pattern = { "*.java", "*.kt" },
   callback = function(event)
-    local clients = vim.lsp.get_clients({ bufnr = event.buf })
-    for _, client in ipairs(clients) do
-      if client.supports_method("textDocument/codeLens") then
-        pcall(vim.lsp.codelens.refresh, { bufnr = event.buf })
-        break
+    local bufnr = event.buf
+    local timer = codelens_timers[bufnr]
+    if not timer then
+      timer = assert(vim.uv.new_timer())
+      codelens_timers[bufnr] = timer
+    end
+    timer:stop()
+    timer:start(
+      250,
+      0,
+      vim.schedule_wrap(function()
+        codelens_refresh(bufnr)
+      end)
+    )
+  end,
+})
+
+vim.api.nvim_create_autocmd({ "BufWipeout", "BufDelete" }, {
+  group = augroup("lsp_codelens_cleanup"),
+  pattern = { "*.java", "*.kt" },
+  callback = function(event)
+    local timer = codelens_timers[event.buf]
+    if timer then
+      timer:stop()
+      if not timer:is_closing() then
+        timer:close()
       end
+      codelens_timers[event.buf] = nil
+    end
+  end,
+})
+
+-- Archive & decompiled URI reader for JAR, ZIP, and virtual LSP URIs (e.g. jar://, jar:file://, zipfile://).
+-- Enables seamless navigation ("Go to Definition", "Go to Implementation") into dependency JARs and .class files.
+local function parse_archive_uri(uri)
+  local jar, entry = uri:match("jar:[^/]*//(.-)!/(.*)$")
+  if not jar then
+    jar, entry = uri:match("jar:(.-)!/(.*)$")
+  end
+  if not jar then
+    jar, entry = uri:match("zipfile://(.-)::(.*)$")
+  end
+  if not jar then
+    jar, entry = uri:match("^(.-%.[jJ][aA][rR])!/(.*)$")
+  end
+  if not jar then
+    jar, entry = uri:match("^(.-%.[zZ][iI][pP])!/(.*)$")
+  end
+  if not jar then
+    jar, entry = uri:match("^(.-%.[jJ][aA][rR])::(.*)$")
+  end
+  if jar and jar:sub(1, 1) ~= "/" and not jar:match("^%a:") then
+    jar = "/" .. jar
+  end
+  return jar, entry
+end
+
+vim.api.nvim_create_autocmd("BufReadCmd", {
+  group = augroup("archive_reader"),
+  pattern = { "jar://*", "*jar:file:/*", "zipfile://*", "*.jar!*", "*.zip!*" },
+  callback = function(args)
+    local raw_name = args.match
+    local jar_path, inner_path = parse_archive_uri(raw_name)
+    if not jar_path or not inner_path or vim.fn.filereadable(jar_path) ~= 1 then
+      return
+    end
+
+    local bufnr = args.buf
+    local is_class = inner_path:match("%.class$") ~= nil
+
+    -- Show the extracted/decompiled contents synchronously would block the
+    -- UI for as long as `javap` / `unzip` take on a large jar. Instead: drop
+    -- a placeholder now, then fill the buffer from `vim.system` callbacks.
+    local function fill(lines)
+      if not vim.api.nvim_buf_is_valid(bufnr) then
+        return
+      end
+      vim.bo[bufnr].modifiable = true
+      vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
+      vim.bo[bufnr].modifiable = false
+      vim.bo[bufnr].readonly = true
+      local ft = is_class and "java" or vim.filetype.match({ filename = inner_path })
+      if ft then
+        vim.bo[bufnr].filetype = ft
+      end
+    end
+
+    vim.bo[bufnr].modifiable = true
+    vim.bo[bufnr].buftype = "nofile"
+    vim.bo[bufnr].swapfile = false
+    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { "Loading " .. inner_path .. " ..." })
+    vim.bo[bufnr].modifiable = false
+
+    local function unzip_fallback()
+      if vim.fn.executable("unzip") ~= 1 then
+        fill({ "Cannot read " .. inner_path .. ": no 'javap' / 'unzip' on PATH" })
+        return
+      end
+      vim.system(
+        { "unzip", "-p", jar_path, inner_path },
+        { text = true },
+        vim.schedule_wrap(function(res)
+          local out = vim.split(res.stdout or "", "\n", { plain = true })
+          if #out == 0 or (res.code ~= 0 and (res.stdout or "") == "") then
+            out = { "Failed to extract " .. inner_path, res.stderr or "" }
+          end
+          fill(out)
+        end)
+      )
+    end
+
+    if is_class and vim.fn.executable("javap") == 1 then
+      local classname = inner_path:gsub("%.class$", ""):gsub("/", ".")
+      vim.system(
+        { "javap", "-cp", jar_path, classname },
+        { text = true },
+        vim.schedule_wrap(function(res)
+          local out = vim.split(res.stdout or "", "\n", { plain = true })
+          if res.code ~= 0 or #out == 0 or (out[1] and out[1]:match("^Error:")) then
+            unzip_fallback()
+          else
+            fill(out)
+          end
+        end)
+      )
+    else
+      unzip_fallback()
     end
   end,
 })

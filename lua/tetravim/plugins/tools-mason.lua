@@ -32,7 +32,8 @@ local ensure_installed = {
   -- Spring Boot Language Server (application.properties / application.yml
   -- completion + Spring symbol navigation) -- see lsp-spring-boot.lua.
   "vscode-spring-boot-tools",
-  "kotlin-language-server",
+  -- Official JetBrains Kotlin Language Server (IntelliJ IDEA engine)
+  "kotlin-lsp",
   "kotlin-debug-adapter",
   "ktlint",
   "groovy-language-server",
@@ -73,9 +74,23 @@ local ensure_installed = {
   "ltex-ls",
   -- Jinja2 / Django template format + lint (bundled template-engine support).
   "djlint",
+  -- nvim-treesitter's "main" branch (see lazy-lock.json + core-treesitter.lua)
+  -- compiles every parser by shelling out to the `tree-sitter` CLI
+  -- (`tree-sitter build`); without it, parser install fails with
+  -- `ENOENT ... 'tree-sitter'`. mason.nvim prepends mason/bin to Neovim's
+  -- $PATH, so this is the zero-npm fallback for the CLI the bootstrap scripts
+  -- also install globally via `npm install -g tree-sitter-cli`.
+  "tree-sitter-cli",
 }
 -- NOTE: Deno's LSP is the `deno` runtime itself -- there is no Mason package.
 -- lsp-deno.lua registers denols only when `deno` is already on $PATH.
+--
+-- NOTE: `grpcurl` was dropped from mason-registry, so listing it here makes
+-- mason-tool-installer throw `Cannot find package "grpcurl"` on every VimEnter.
+-- It's a plain Go binary with no editor plugin -- the bootstrap scripts install
+-- it via the system package manager / `go install`, util/grpc.lua guards every
+-- call behind an `executable("grpcurl")` check, and :checkhealth tetravim points
+-- at the manual install. So it just doesn't belong in the Mason list.
 
 return {
   {
@@ -101,7 +116,13 @@ return {
     dependencies = { "williamboman/mason.nvim" },
     opts = {
       ensure_installed = ensure_installed,
-      auto_update = true,
+      -- run_on_start installs anything *missing* on a fresh machine (needed --
+      -- jdtls, kotlin-language-server, the linters). auto_update additionally
+      -- hits the network to re-resolve and upgrade every already-installed
+      -- package on every VimEnter, which is a startup tax behind a corporate
+      -- proxy and a source of spurious "updated"/"failed" toasts. Upgrade tools
+      -- deliberately with `:MasonToolsUpdate`.
+      auto_update = false,
       run_on_start = true,
     },
   },

@@ -8,40 +8,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 work (Java, Kotlin, Scala, Gradle/Maven) and cloud-native/DevOps development. It is
 pure native Neovim — standard LSPs, Tree-sitter, Mason, `nvim-dap`, Lua utilities.
 There is no companion backend/engine/bridge. Requires **Neovim ≥ 0.11** (uses
-`vim.lsp.config`/`vim.lsp.enable`, `vim.diagnostic.jump`, `winborder`).
+`vim.lsp.config`/`vim.lsp.enable`, `vim.diagnostic.jump`, `winborder`; `init.lua`
+hard-fails on anything older).
 
-The repo is meant to be cloned to `~/.config/nvim` (or symlinked there for
-development).
+The repo is meant to live at `~/tetravim.nvim`, with `~/.config/nvim`
+symlinked to it (`bootstrap.sh` creates/enforces both).
 
 ## Commands
 
 ```bash
-# Full dependency install (Neovim, npm/go/python tools, Mason, Tree-sitter, scanners)
+# Full dependency install (Neovim, npm/go/python tools, Mason, Tree-sitter, scanners).
+# Single root script -- there is no scripts/ dir anymore.
 bash bootstrap.sh
 
-# Local dev: symlink ~/.config/nvim -> repo, then sync plugins
-bash scripts/dev-init.sh
+# Native non-interactive setup & provisioning (Lazy sync, Mason tools, JVM LSP jars,
+# TS parsers, health snapshot). This is what CI's "smoke" job runs.
+nvim --headless -u init.lua -c "lua require('tetravim.core.setup').run()" -c "qa!"
 
-# Non-interactive provisioning for CI / Codespaces / Coder (no TTY, exits 0 with a
-# DEGRADED summary if best-effort steps fail)
-bash scripts/headless-setup.sh
-
-# Full smoke test (shell syntax, headless load, core modules, theme, plugins, DevOps suite)
-bash scripts/validate.sh
-
-# Component validation suites (each is a standalone headless assertion script)
-bash scripts/validate-refactor.sh      # safe rename / move
-bash scripts/validate-extract.sh       # method/variable/interface extraction
-bash scripts/validate-db.sh            # dadbod DB explorer
-bash scripts/validate-http.sh          # kulala HTTP client + OpenAPI
-bash scripts/validate-dap-jvm.sh       # JVM DAP debugger
-bash scripts/validate-devops.sh        # Terraform/CFN/Ansible root discovery
-bash scripts/validate-filetemplate.sh  # "New File from Template" (IDEA-style New)
-bash scripts/validate-completion.sh    # nvim-cmp + LuaSnip IntelliSense wiring
-bash scripts/validate-jvm-frameworks.sh # Spring Boot / Quarkus / MicroProfile config LSP wiring
-# ...see scripts/ for the rest
-
-# Lua test suite (plenary busted)
+# Full plenary busted suite
 nvim --headless -u init.lua -c "Lazy! load plenary.nvim" \
   -c "PlenaryBustedDirectory lua/tetravim/tests/" -c "qa"
 
@@ -49,20 +33,26 @@ nvim --headless -u init.lua -c "Lazy! load plenary.nvim" \
 nvim --headless -u init.lua -c "Lazy! load plenary.nvim" \
   -c "PlenaryBustedFile lua/tetravim/tests/theme_integration_spec.lua" -c "qa"
 
-# Format Lua (stylua.toml: 2-space indent, 120 column)
+# Format Lua (stylua.toml: 2-space indent, 120 column). CI runs `stylua --check .`
 stylua .
 
 # In-editor health
 nvim +"checkhealth tetravim"
 ```
 
+CI (`.github/workflows/ci.yml`) runs three jobs on push/PR: **lint** (`stylua
+--check` + `bash -n bootstrap.sh`), **test** (busted suite on nvim stable — gate —
+and nightly — advisory), **smoke** (`tetravim.core.setup.run()` + health JSON).
+The busted job gates on the printed summary text, not the exit code.
+
 ## Architecture
 
 ### Load order
 
-`init.lua` → `tetravim.util.notify` → `tetravim.core` (`core/init.lua` loads
-`options`, `keymaps`, `autocmds`, `diagnostics`, `notify`, `health`) →
-`tetravim.core.lazy` (bootstraps lazy.nvim, then `{ import = "tetravim.plugins" }`).
+`init.lua` → `vim.loader.enable()` → `tetravim.util.notify` → `tetravim.core`
+(`core/init.lua` loads `options`, `keymaps`, `autocmds`, `diagnostics`, `notify`,
+`health`) → `tetravim.core.lazy` (bootstraps lazy.nvim, then
+`{ import = "tetravim.plugins" }`).
 
 `core/lazy.lua` auto-imports **every** file in `lua/tetravim/plugins/`; each such
 file returns a lazy.nvim spec (single spec table or a list of them). `defaults.lazy
@@ -84,22 +74,22 @@ file returns a lazy.nvim spec (single spec table or a list of them). `defaults.l
 
 ### Keymap system
 
-There are four registration channels, deliberately layered so `<leader>` groups
-only show keys relevant to the current buffer:
+Four registration channels, deliberately layered so `<leader>` groups only show
+keys relevant to the current buffer:
 
 1. **Global** — `core/keymaps.lua` (`<leader>c` code/LSP, `<leader>w` windows,
    `<leader>a` API/data clients — `<leader>ah` HTTP, `<leader>ag` gRPC, `<leader>ad`
    database — `<leader>x` quality/security, file ops).
 2. **JVM platform** — `<leader>j`, registered unconditionally via
-   `require("tetravim.util.jvm").setup_keymaps()`.
+   `require("tetravim.util.jvm.jvm").setup_keymaps()`.
 3. **DevOps/infra** — `<leader>o`, registered globally via
    `require("tetravim.core.devops").setup_keymaps()`; which-key groups come from
    `devops.whichkey_spec()`.
-4. **Language-scoped** — `core/lang-keymaps.lua`. Each language stack calls
+4. **Language-scoped** — `core/lang_keymaps.lua`. Each language stack calls
    `M.register{ filetypes=…, group=…, keys=… }`; a `FileType` autocmd installs the
    keys **buffer-local** only for matching filetypes, so `<leader>c` never mixes
    e.g. Maven keys into a Terraform buffer. Java/Kotlin build stacks are gated
-   behind `util/build-sync-state` until the first Maven/Gradle dependency sync
+   behind `util/jvm/build_sync_state` until the first Maven/Gradle dependency sync
    completes.
 
 ### LSP
@@ -122,57 +112,57 @@ JVM framework config intelligence (`application.properties` / `application.yml` 
 - **Quarkus / MicroProfile** — `plugins/lsp-quarkus.lua` drives
   `JavaHello/quarkus.nvim` + `JavaHello/microprofile.nvim` (lsp4mp + Qute LS). These
   ship only inside Red Hat's `vscode-quarkus` / `vscode-microprofile` `.vsix`
-  bundles — **not in Mason** — so `scripts/fetch-jvm-lsp-jars.sh` downloads them
-  from Open VSX into `$TETRAVIM_JVM_LSP_DIR` (default
-  `stdpath("data")/tetravim/jvm-lsp`, layout `quarkus/{server,jars}` +
-  `microprofile/{server,jars}`). The spec loads but stays **dormant** (no server
-  spawned) until those jars exist; each server is a separate ~1 GiB JVM on top of
-  jdtls, so activation is opt-in. The three provisioning scripts
-  (`bootstrap.sh`, `scripts/bootstrap.sh`, `scripts/headless-setup.sh`) call the
-  fetch script best-effort.
+  bundles — **not in Mason** — so `:TetraVimFetchJvmLspJars`
+  (`util/jvm/frameworks.fetch_jars()`) downloads them from Open VSX into
+  `$TETRAVIM_JVM_LSP_DIR` (default `stdpath("data")/tetravim/jvm-lsp`, layout
+  `quarkus/{server,jars}` + `microprofile/{server,jars}`). The spec loads but stays
+  **dormant** (no server spawned) until those jars exist; each server is a separate
+  ~1 GiB JVM on top of jdtls, so activation is opt-in. The provisioning pipeline
+  (`bootstrap.sh`, `tetravim.core.setup`) calls `jvm_frameworks.fetch_jars()`
+  headlessly best-effort.
 - **Micronaut** — intentionally **unsupported**: no viable Neovim language server
   exists. Do not add one.
 
-`util/jvm_frameworks` is the path resolver + readiness probe API
-(`dir`, `java_cmd`, `quarkus_paths`, `microprofile_paths`, `quarkus_ready`,
-`spring_boot_ls_jar`, `spring_boot_ready`) used by both plugin specs,
-`ftplugin/java.lua` (folds each module's `java_extensions()` into the jdtls
-`bundles`) and the `:checkhealth tetravim` "JVM Framework Config LSP" section.
-`scripts/validate-jvm-frameworks.sh` + `tests/jvm_frameworks_spec.lua` cover it.
+`util/jvm/frameworks` is the path resolver + readiness probe API used by both
+plugin specs, `ftplugin/java.lua` (folds each module's `java_extensions()` into the
+jdtls `bundles`) and the `:checkhealth tetravim` "JVM Framework Config LSP"
+section. `tests/jvm_frameworks_spec.lua` covers it.
 
-Completion capabilities: `util/lsp_capabilities.make()` is the one source of truth
+Completion capabilities: `util/lsp/capabilities.make()` is the one source of truth
 for the `capabilities` table every server starts with — it folds
-`cmp_nvim_lsp.default_capabilities()` (extended completion-item / snippet / resolve
-support) onto the 0.11 base and degrades gracefully when nvim-cmp isn't loaded.
-`lsp-core.lua` applies it once via `vim.lsp.config("*", { capabilities })` (covers
-every `opts.servers` entry) plus the lspconfig fallback; `ftplugin/java.lua` and
-`lsp-scala.lua` inject the same table on their own start paths. The completion
-front-end (nvim-cmp + LuaSnip + friendly-snippets + `cmp-nvim-lsp`/`-buffer`/
-`-path`/`-cmdline`) lives in `plugins/editor-completion.lua`; SQL buffers layer
-`vim-dadbod-completion` on top buffer-locally via `tools-dadbod.lua`.
+`cmp_nvim_lsp.default_capabilities()` onto the 0.11 base and degrades gracefully
+when nvim-cmp isn't loaded. `lsp-core.lua` applies it once via
+`vim.lsp.config("*", { capabilities })` plus the lspconfig fallback;
+`ftplugin/java.lua` and `lsp-scala.lua` inject the same table on their own start
+paths. The completion front-end (nvim-cmp + LuaSnip + friendly-snippets +
+`cmp-nvim-lsp`/`-buffer`/`-path`/`-cmdline`) lives in
+`plugins/editor-completion.lua`; SQL buffers layer `vim-dadbod-completion` on top
+buffer-locally via `tools-dadbod.lua`.
 
 Resilience layer:
-- `util/lsp_resilience` — bounds the JDTLS JVM heap (`apply_memory_limit`) and
+
+- `util/lsp/resilience` — bounds the JDTLS JVM heap (`apply_memory_limit`) and
   auto-restarts a crashed server (max 3 restarts / 180s, then stops and points at
   `:LspLog`). `on_attach` calls `reset()` to open a fresh window.
-- `util/lsp_async.request_all_async` — fans a request out to all attached clients
+- `util/lsp/async.request_all_async` — fans a request out to all attached clients
   and calls back on `vim.schedule` after the last reply, so project-wide operations
-  (e.g. safe-rename reference scan) never block the UI thread.
+  never block the UI thread.
 
 ### Theme
 
 Single canonical palette. `theme/tetris.lua` holds the hex values
 (`bg #111216`, `cyan #00F0F0`, `purple #A000F0`, …) and the highlight table;
-`theme/init.lua` is a thin loader (`apply()` / `load_saved_theme()` /
-`setup()` shim) invoked from `core/options.lua` on startup. A previous
-multi-provider "cloud theme switcher" was removed — do not reintroduce provider
-palette tables.
+`theme/init.lua` is a thin loader (`apply()` / `load_saved_theme()` / `setup()`
+shim) invoked from `core/options.lua` on startup. A previous multi-provider "cloud
+theme switcher" was removed — do not reintroduce provider palette tables.
 
 ### Health & headless
 
-- `:checkhealth tetravim` → `lua/tetravim/health.lua` (per-feature dependency
-  probes).
-- `:CheckHealthJson` / `require("tetravim.core.health").json()` → one-line JSON
+- `:checkhealth tetravim` → `lua/tetravim/health/` (per-feature dependency probes).
+  `health/init.lua` is the orchestrator; the actual probes are grouped one concern
+  per file (`platform`, `jvm`, `devops`, `clients`, `quality`, `editor`) and run in
+  that order so the report reads top-to-bottom unchanged.
+- `:CheckHealthJson` / `require("tetravim.core.health_json").json()` → one-line JSON
   (`neovim_version`, `lsp_clients`, `plugin_count`, `pending_async_tasks`,
   `telemetry_enabled`) for CI gating.
 - `TETRAVIM_HEADLESS=1` → `vim.g.tetravim_headless` (bridged in `core/options.lua`).
@@ -182,15 +172,21 @@ palette tables.
 
 ## Conventions
 
-- `<leader>` is Space, `<localleader>` is `\`.
-- Comments frequently cite `Story X.Y` / `SPEC-N.M` tags — these are historical
-  planning references; the BMAD planning tree they came from has been removed. Do
-  not treat missing `_bmad*` paths as a bug.
+- `<leader>` is Space, `<localleader>` is `\` (`core/options.lua`).
+- Comments frequently cite `Story X.Y` / `SPEC-N.M` / `Epic N` tags — these are
+  historical planning references; the BMAD planning tree they came from
+  (`_bmad-output/*`) has been removed. Do not treat missing `_bmad*` paths as a bug.
 - Helper output (HTTP/gRPC responses, generated templates) always renders in a
   persistent split via the shared `tetravim_http_open_in_split` helper, never a
   floating window.
 - New user-facing logic: put the implementation in a `util/` module and keep the
   keymap file a thin dispatcher; guard every optional binary/plugin with a
   `pcall`/`executable` check that degrades to a single `ui.notify_*` call.
-- Every feature that touches an external tool should add a probe to
-  `lua/tetravim/health.lua`.
+- Every feature that touches an external tool should add a probe to the relevant
+  `lua/tetravim/health/<group>.lua` section.
+- Never call `vim.notify(...)` raw. Route every notification through
+  `require("tetravim.util.ui").notify_info/warn/err` (facade) — or
+  `tetravim.util.notify` directly in the rare module that already binds it — so
+  the default title and the opt-in telemetry sink apply. Only `util/notify.lua`
+  (the base impl) and `util/ui.lua` (its raw fallback) may name `vim.notify`;
+  `tests/notify_layer_spec.lua` fails the suite on any other occurrence.

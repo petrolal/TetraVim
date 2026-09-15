@@ -48,7 +48,7 @@ map("n", "<leader>cd", function()
   vim.diagnostic.open_float()
 end, { desc = "Line Diagnostics" })
 map({ "n", "x" }, "<leader>cf", function()
-  require("tetravim.util.format").format({ force = true })
+  require("tetravim.util.edit.format").format({ force = true })
 end, { desc = "Format" })
 map({ "n", "x" }, "<leader>cF", function()
   require("conform").format({ formatters = { "injected" }, timeout_ms = 3000 })
@@ -90,19 +90,96 @@ end, { desc = "Rename File" })
 -- active clients, capabilities, and file-watcher status.
 map("n", "<leader>cl", "<cmd>checkhealth vim.lsp<cr>", { desc = "Lsp Info" })
 
+-- Call / type hierarchy (IDEA Ctrl+Alt+H / Ctrl+H). Neovim 0.11 ships these
+-- buf helpers but maps none of them. Nested under a <leader>ch prefix so the
+-- four rarely-pressed navigators don't burn scarce single letters -- and so
+-- <leader>ci stays free for the buffer-local "Inline" refactor the JVM stack
+-- installs (util/extract).
+map("n", "<leader>chi", function()
+  vim.lsp.buf.incoming_calls()
+end, { desc = "Incoming Calls" })
+map("n", "<leader>cho", function()
+  vim.lsp.buf.outgoing_calls()
+end, { desc = "Outgoing Calls" })
+map("n", "<leader>chs", function()
+  vim.lsp.buf.typehierarchy("subtypes")
+end, { desc = "Type Hierarchy (Subtypes)" })
+map("n", "<leader>chS", function()
+  vim.lsp.buf.typehierarchy("supertypes")
+end, { desc = "Type Hierarchy (Supertypes)" })
+map("n", "<leader>cn", function()
+  vim.lsp.buf.code_action({
+    context = { only = { "source.generate" }, diagnostics = {} },
+  })
+end, { desc = "Generate..." })
+map("n", "<leader>ck", function()
+  -- Change-signature: jdtls surfaces it as a refactor.rewrite code action;
+  -- other servers expose an equivalent under the generic refactor kind.
+  vim.lsp.buf.code_action({
+    context = { only = { "refactor.rewrite", "refactor" }, diagnostics = {} },
+  })
+end, { desc = "Change Signature / Rewrite" })
+map("n", "<leader>cy", function()
+  -- Safe delete: servers that support it advertise it as a refactor action;
+  -- fall back to the full picker when none is offered.
+  vim.lsp.buf.code_action({
+    context = { only = { "refactor.inline", "refactor" }, diagnostics = {} },
+  })
+end, { desc = "Safe Delete / Inline" })
+
+-- Node / npm package.json dependency lens (package-info.nvim)
+local function npm_action(fn_name)
+  if vim.fs.basename(vim.api.nvim_buf_get_name(0)) ~= "package.json" then
+    require("tetravim.util.ui").notify_warn("Open package.json first -- <leader>cp* operates on package.json")
+    return
+  end
+  local ok, pkg = pcall(require, "package-info")
+  if ok and pkg[fn_name] then
+    pkg[fn_name]()
+  else
+    require("tetravim.util.ui").notify_err("package-info.nvim is not loaded or action failed")
+  end
+end
+
+map("n", "<leader>cpt", function()
+  npm_action("toggle")
+end, { desc = "Toggle Dependency Versions" })
+map("n", "<leader>cps", function()
+  npm_action("show")
+end, { desc = "Show Dependency Versions" })
+map("n", "<leader>cph", function()
+  npm_action("hide")
+end, { desc = "Hide Dependency Versions" })
+map("n", "<leader>cpu", function()
+  npm_action("update")
+end, { desc = "Update Dependency On Line" })
+map("n", "<leader>cpd", function()
+  npm_action("delete")
+end, { desc = "Delete Dependency On Line" })
+map("n", "<leader>cpi", function()
+  npm_action("install")
+end, { desc = "Install New Dependency" })
+map("n", "<leader>cpc", function()
+  npm_action("change_version")
+end, { desc = "Change Dependency Version" })
+
 -- Per-language <leader>c* subgroups (Story 34.1): build/lint/format commands
 -- for a given language stack only appear as buffer-local keymaps while
 -- editing a matching filetype, so <leader>c no longer mixes e.g. Maven
--- keymaps into a Python or Terraform buffer's popup. See lang-keymaps.lua.
-local lang_keymaps = require("tetravim.core.lang-keymaps")
+-- keymaps into a Python or Terraform buffer's popup. See lang_keymaps.lua.
+local lang_keymaps = require("tetravim.core.lang_keymaps")
+
+-- Shared by many keymap callbacks below; hoisted so we don't re-require per press.
+local ui = require("tetravim.util.ui")
+local grpc = require("tetravim.util.clients.grpc")
 
 -- ==============================================================================
 -- ⭐ JVM PLATFORM KEYMAP SUITE (<leader>j) - Unconditionally Registered
 -- ==============================================================================
-local jvm = require("tetravim.util.jvm")
+local jvm = require("tetravim.util.jvm.jvm")
 local jvm_ok, jvm_err = pcall(jvm.setup_keymaps)
 if not jvm_ok then
-  vim.notify("Failed to register JVM keymaps: " .. tostring(jvm_err), vim.log.levels.WARN, { title = "TetraVim JVM" })
+  ui.notify_warn("Failed to register JVM keymaps: " .. tostring(jvm_err), "TetraVim JVM")
 end
 
 -- ==============================================================================
@@ -111,7 +188,7 @@ end
 local devops = require("tetravim.core.devops")
 local ok, err = pcall(devops.setup_keymaps)
 if not ok then
-  vim.notify("Failed to register DevOps keymaps: " .. tostring(err), vim.log.levels.WARN, { title = "TetraVim DevOps" })
+  ui.notify_warn("Failed to register DevOps keymaps: " .. tostring(err), "TetraVim DevOps")
 end
 
 lang_keymaps.setup()
@@ -142,63 +219,33 @@ map("n", "<leader>ada", "<cmd>DBUIAddConnection<cr>", { desc = "Add DB Connectio
 -- HTTP Client & REST API Explorer Keymaps (kulala.nvim -- SPEC-3.2). The
 -- plugin itself is wired up in tools-http.lua; the two custom pieces this
 -- story adds (OpenAPI-to-.http generation, jq response filtering) live in
--- tetravim.util.openapi / tetravim.util.http. Response/generated-template
+-- tetravim.util.clients.openapi / tetravim.util.clients.http. Response/generated-template
 -- output always renders in a persistent split, never a floating window,
 -- per this epic's established UX pattern.
+-- Thin wrapper over the shared persistent-split renderer (util/split.lua),
+-- kept for the historical call-site signature (text, filetype, name_hint).
+-- Vertical split matches tools-http.lua's kulala.nvim `split_direction =
+-- "right"` so generated-template / jq-filtered output opens in the same
+-- orientation as kulala's own response split.
 local function tetravim_http_open_in_split(text, filetype, name_hint)
-  -- Reuse a result window from a previous invocation -- its buffer name
-  -- starts with "<name_hint>-" -- instead of stacking a fresh split on every
-  -- call.
-  local target_win
-  for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
-    local buf = vim.api.nvim_win_get_buf(win)
-    local ok_name, bufname = pcall(vim.api.nvim_buf_get_name, buf)
-    if ok_name and vim.fs.basename(bufname):match("^" .. vim.pesc(name_hint) .. "%-") then
-      target_win = win
-      break
-    end
-  end
-
-  if target_win and vim.api.nvim_win_is_valid(target_win) then
-    vim.api.nvim_set_current_win(target_win)
-  else
-    -- Vertical, matching tools-http.lua's kulala.nvim `split_direction = "right"`
-    -- so generated-template/jq-filtered output opens in the same orientation
-    -- as kulala's own response split.
-    vim.cmd("botright vsplit")
-  end
-
-  -- Unlisted scratch buffer: buftype=nofile + bufhidden=wipe + noswapfile so
-  -- a stray `:w` can never dump this helper output into the repo and the
-  -- buffer is discarded when its window goes away.
-  local bufnr = vim.api.nvim_create_buf(false, true)
-  vim.api.nvim_win_set_buf(0, bufnr)
-  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, vim.split(text, "\n", { plain = true }))
-  vim.bo[bufnr].buftype = "nofile"
-  vim.bo[bufnr].bufhidden = "wipe"
-  vim.bo[bufnr].swapfile = false
-  vim.bo[bufnr].filetype = filetype
-  vim.bo[bufnr].modified = false
-  pcall(vim.api.nvim_buf_set_name, bufnr, name_hint .. "-" .. tostring(bufnr))
+  require("tetravim.util.split").open(text, { filetype = filetype, name_hint = name_hint })
 end
 
 map("n", "<leader>ahr", function()
   if vim.bo.filetype ~= "http" then
-    require("tetravim.util.ui").notify_err(
-      "Open a .http file first -- <leader>ahr only runs requests from a .http buffer"
-    )
+    ui.notify_err("Open a .http file first -- <leader>ahr only runs requests from a .http buffer")
     return
   end
   local ok, kulala = pcall(require, "kulala")
   if not ok then
-    require("tetravim.util.ui").notify_err("kulala.nvim is not available -- open a .http file first")
+    ui.notify_err("kulala.nvim is not available -- open a .http file first")
     return
   end
   -- Guard kulala.run() so a malformed .http buffer surfaces a clean
   -- notification instead of a raw Lua stack trace.
   local run_ok, run_err = pcall(kulala.run)
   if not run_ok then
-    require("tetravim.util.ui").notify_err("Failed to run HTTP request: " .. tostring(run_err))
+    ui.notify_err("Failed to run HTTP request: " .. tostring(run_err))
   end
 end, { desc = "Run HTTP Request" })
 
@@ -207,17 +254,20 @@ map("n", "<leader>aho", function()
     if not spec_path or spec_path == "" then
       return
     end
-    local http_text = require("tetravim.util.openapi").generate_http_from_spec(spec_path)
+    local http_text = require("tetravim.util.clients.openapi").generate_http_from_spec(spec_path)
     if not http_text then
-      return -- tetravim.util.openapi already warned via ui.notify_warn
+      return -- tetravim.util.clients.openapi already warned via ui.notify_warn
     end
     tetravim_http_open_in_split(http_text, "http", "generated")
-    require("tetravim.util.ui").notify_info("Generated .http request template from " .. spec_path)
+    ui.notify_info("Generated .http request template from " .. spec_path)
   end)
 end, { desc = "Generate .http from OpenAPI Spec" })
 
+map("n", "<leader>ae", function()
+  require("tetravim.util.clients.endpoints_panel").open()
+end, { desc = "Endpoints Panel" })
+
 map("n", "<leader>ahj", function()
-  local ui = require("tetravim.util.ui")
   local ft = vim.bo.filetype
 
   -- A .http source buffer is not a response -- jq has nothing useful to do
@@ -241,7 +291,7 @@ map("n", "<leader>ahj", function()
   -- exactly one top-level value) rejects, so a decode failure here warns but
   -- does NOT abort the filter. kulala's own response window
   -- (filetype=kulala_ui) renders a known-good body, so skip the check there.
-  if ft ~= "kulala_ui" and not require("tetravim.util.http").looks_like_json(json_text) then
+  if ft ~= "kulala_ui" and not require("tetravim.util.clients.http").looks_like_json(json_text) then
     ui.notify_warn("Current buffer does not look like valid JSON -- jq may fail or produce unexpected output")
   end
 
@@ -249,141 +299,102 @@ map("n", "<leader>ahj", function()
     if not filter_expr or filter_expr == "" then
       return
     end
-    require("tetravim.util.http").jq_filter(json_text, filter_expr, function(result_text)
+    require("tetravim.util.clients.http").jq_filter(json_text, filter_expr, function(result_text)
       tetravim_http_open_in_split(result_text, "json", "jq-filtered")
     end)
   end)
 end, { desc = "jq-Filter JSON Response/Buffer" })
 
+-- AI Assistant Keymaps (<leader>i), one which-key group per tool so each can
+-- be enabled/disabled/configured independently via tetravim.util.ai.config
+-- (<leader>is). Every keymap here is a thin dispatcher into a
+-- tetravim.util.ai.* wrapper, which guards for its plugin/CLI not being
+-- present and for a missing API key/credential. Gemini (<leader>ig) is the
+-- one tool with no Neovim plugin behind it at all -- it shells out to the
+-- official `gemini` CLI (tetravim.util.ai.gemini), so its keymap block is
+-- gated directly on is_enabled() here rather than a lazy.nvim spec.
+local ai_cc = require("tetravim.util.ai.codecompanion")
+local ai_gemini = require("tetravim.util.ai.gemini")
+local ai_copilot = require("tetravim.util.ai.copilot")
+local ai_cursor = require("tetravim.util.ai.cursor")
+local ai_config = require("tetravim.util.ai.config")
+
+-- Claude group (<leader>ic) -- codecompanion.nvim, anthropic adapter.
+map("n", "<leader>icc", ai_cc.toggle_chat, { desc = "Toggle Chat" })
+map({ "n", "x" }, "<leader>ica", ai_cc.actions, { desc = "Actions Palette" })
+map("x", "<leader>ice", function()
+  ai_cc.visual_prompt("/explain")
+end, { desc = "Explain Selection" })
+map("x", "<leader>icf", function()
+  ai_cc.visual_prompt("/fix")
+end, { desc = "Fix Selection" })
+map("x", "<leader>ict", function()
+  ai_cc.visual_prompt("/tests")
+end, { desc = "Generate Tests For Selection" })
+map("x", "<leader>icb", ai_cc.add_selection_to_chat, { desc = "Add Selection To Chat" })
+map({ "n", "x" }, "<leader>ici", ai_cc.custom_prompt, { desc = "Custom Instruction" })
+map("n", "<leader>icg", ai_cc.commit_message, { desc = "Generate Commit Message" })
+
+-- Gemini group (<leader>ig) -- official `gemini` CLI, run in a terminal.
+if ai_config.is_enabled("gemini") then
+  map("n", "<leader>igc", ai_gemini.toggle_chat, { desc = "Toggle Chat" })
+  map("x", "<leader>ige", ai_gemini.explain, { desc = "Explain Selection" })
+  map("x", "<leader>igf", ai_gemini.fix, { desc = "Fix Selection" })
+  map("x", "<leader>igt", ai_gemini.tests, { desc = "Generate Tests For Selection" })
+  map({ "n", "x" }, "<leader>igi", ai_gemini.custom_prompt, { desc = "Custom Instruction" })
+  map("n", "<leader>igg", ai_gemini.commit_message, { desc = "Generate Commit Message" })
+end
+
+-- Copilot group (<leader>ip) -- copilot.lua ghost-text engine.
+map("n", "<leader>ipt", ai_copilot.toggle, { desc = "Toggle Suggestions" })
+map("n", "<leader>ips", ai_copilot.status, { desc = "Status" })
+map("n", "<leader>ipp", ai_copilot.panel, { desc = "Suggestions Panel" })
+map("n", "<leader>ipa", ai_copilot.auth, { desc = "Authenticate" })
+
+-- Cursor group (<leader>iv) -- avante.nvim inline diff-apply editing.
+map("n", "<leader>ivv", ai_cursor.toggle, { desc = "Toggle Sidebar" })
+map("n", "<leader>iva", ai_cursor.ask, { desc = "Ask" })
+map("x", "<leader>ive", ai_cursor.edit, { desc = "Edit Selection" })
+map("n", "<leader>ivr", ai_cursor.refresh, { desc = "Refresh" })
+map("n", "<leader>ivm", ai_cursor.switch_provider, { desc = "Switch Provider" })
+
+-- Settings (<leader>is) -- enable/disable each tool and pick the default
+-- provider/model without editing Lua. Toggling `enabled` here needs a
+-- `:Lazy reload <plugin>` or a restart to actually install/uninstall the
+-- plugin -- lazy.nvim only resolves `enabled = function` when it builds the
+-- plugin list.
+map("n", "<leader>is", function()
+  local tools = ai_config.TOOL_NAMES
+  local labels = vim.tbl_map(function(tool)
+    return string.format("%-8s [%s]", tool, ai_config.is_enabled(tool) and "on" or "off")
+  end, tools)
+  vim.ui.select(labels, { prompt = "Toggle AI tool (needs :Lazy reload / restart to apply):" }, function(_, idx)
+    if not idx then
+      return
+    end
+    local tool = tools[idx]
+    ai_config.set_enabled(tool, not ai_config.is_enabled(tool))
+    require("tetravim.util.ui").notify_info(
+      tool .. " " .. (ai_config.is_enabled(tool) and "enabled" or "disabled") .. " -- run :Lazy reload or restart",
+      "TetraVim AI"
+    )
+  end)
+end, { desc = "Toggle Enabled Tools" })
+
 -- gRPC & Protobufs Integration Keymaps (SPEC-3.4). The `.proto` LSP
 -- (protols), Tree-sitter parser and `buf` formatter are wired in
 -- lsp-proto.lua / core-treesitter.lua / tools-formatting.lua; the two
 -- custom pieces this story adds -- reflection-driven service/method
--- browsing and structured RPC execution -- live in tetravim.util.grpc.
--- Every gRPC output renders in the shared persistent split via
--- tetravim_http_open_in_split, never a floating window.
-local function tetravim_grpc_prompt_addr(cb)
-  vim.ui.input({ prompt = "gRPC server (host:port): ", default = "localhost:50051" }, function(addr)
-    if not addr or vim.trim(addr) == "" then
-      return
-    end
-    cb(vim.trim(addr))
-  end)
-end
-
--- Open the editable JSON request skeleton in a persistent "grpc-request"
--- split and bind a buffer-local <CR> that reads it back, refuses malformed
--- JSON (never handing it to grpcurl), invokes the RPC async and renders the
--- response in a persistent "grpc-response" json split.
-local function tetravim_grpc_open_request(addr, method, skeleton_text)
-  local ui = require("tetravim.util.ui")
-  tetravim_http_open_in_split(skeleton_text, "json", "grpc-request")
-  local bufnr = vim.api.nvim_get_current_buf()
-  vim.keymap.set("n", "<CR>", function()
-    local grpc = require("tetravim.util.grpc")
-    local payload = table.concat(vim.api.nvim_buf_get_lines(bufnr, 0, -1, false), "\n")
-    if not require("tetravim.util.http").looks_like_json(payload) then
-      ui.notify_err("gRPC request buffer is not valid JSON -- fix it before pressing <CR> (nothing sent)")
-      return
-    end
-    grpc.invoke(addr, method, payload, function(response)
-      tetravim_http_open_in_split(response, "json", "grpc-response")
-    end)
-  end, { buffer = bufnr, desc = "Invoke RPC with this payload" })
-  ui.notify_info("Edit the payload, then press <CR> in this buffer to invoke " .. method)
-end
-
--- Given a fully-qualified method ("pkg.Service/Method" or
--- "pkg.Service.Method"), resolve its request message type via `grpcurl
--- describe`, then a second `describe -msg-template` for that type, and open
--- the generated skeleton for editing.
-local function tetravim_grpc_build_request(addr, method)
-  local grpc = require("tetravim.util.grpc")
-  local ui = require("tetravim.util.ui")
-  grpc.describe(addr, (method:gsub("/", ".")), function(method_desc)
-    local parsed = grpc.parse_methods(method_desc)
-    if #parsed == 0 or parsed[1].request_type == "" then
-      ui.notify_err("Could not determine the request type for " .. method)
-      return
-    end
-    grpc.describe(addr, parsed[1].request_type, function(type_desc)
-      local template = grpc.extract_msg_template(type_desc)
-      local skeleton = grpc.request_skeleton(template or "")
-      if not skeleton then
-        return -- request_skeleton already warned
-      end
-      tetravim_grpc_open_request(addr, method, skeleton)
-    end)
-  end)
-end
-
+-- browsing and structured RPC execution -- live in tetravim.util.clients.grpc,
+-- which renders every gRPC output in the shared persistent split.
 map("n", "<leader>agg", function()
   require("grpcui").open()
 end, { desc = "UI (grpcurl)" })
-map("n", "<leader>agl", function()
-  local grpc = require("tetravim.util.grpc")
-  local ui = require("tetravim.util.ui")
-  tetravim_grpc_prompt_addr(function(addr)
-    grpc.list_services(addr, function(out)
-      local services = grpc.parse_service_list(out)
-      if #services == 0 then
-        ui.notify_warn("No gRPC services reported by " .. addr)
-        return
-      end
-      vim.ui.select(services, { prompt = "gRPC service:" }, function(service)
-        if not service then
-          return
-        end
-        grpc.describe(addr, service, function(service_desc)
-          local methods = grpc.parse_methods(service_desc)
-          if #methods == 0 then
-            tetravim_http_open_in_split(service_desc, "proto", "grpc-describe")
-            return
-          end
-          local labels = {}
-          for _, m in ipairs(methods) do
-            table.insert(labels, m.name)
-          end
-          vim.ui.select(labels, { prompt = service .. " method:" }, function(choice, idx)
-            if not choice or not idx then
-              return
-            end
-            tetravim_grpc_build_request(addr, service .. "/" .. methods[idx].name)
-          end)
-        end)
-      end)
-    end)
-  end)
-end, { desc = "List Services & Methods" })
-
-map("n", "<leader>agm", function()
-  local grpc = require("tetravim.util.grpc")
-  local default_symbol = vim.fn.expand("<cword>")
-  vim.ui.input({ prompt = "gRPC symbol to describe: ", default = default_symbol }, function(symbol)
-    if not symbol or vim.trim(symbol) == "" then
-      return
-    end
-    tetravim_grpc_prompt_addr(function(addr)
-      grpc.describe(addr, vim.trim(symbol), function(desc)
-        tetravim_http_open_in_split(desc, "proto", "grpc-describe")
-      end)
-    end)
-  end)
-end, { desc = "Describe Symbol" })
-
-map("n", "<leader>agi", function()
-  vim.ui.input({ prompt = "gRPC method (pkg.Service/Method): " }, function(method)
-    if not method or vim.trim(method) == "" then
-      return
-    end
-    tetravim_grpc_prompt_addr(function(addr)
-      tetravim_grpc_build_request(addr, vim.trim(method))
-    end)
-  end)
-end, { desc = "Generate Request Skeleton" })
+map("n", "<leader>agl", grpc.browse_services, { desc = "List Services & Methods" })
+map("n", "<leader>agm", grpc.describe_symbol, { desc = "Describe Symbol" })
+map("n", "<leader>agi", grpc.generate_request, { desc = "Generate Request Skeleton" })
 
 map("n", "<leader>agf", function()
-  local ui = require("tetravim.util.ui")
   if vim.bo.filetype ~= "proto" then
     ui.notify_err("<leader>agf formats a .proto buffer -- open one first")
     return
@@ -407,12 +418,12 @@ local function save_current_file()
   local name = vim.api.nvim_buf_get_name(0)
   if name == "" then
     -- Unnamed/scratch buffer: prompt for a file name instead of crashing with E32
-    vim.notify("Buffer has no file name — use :saveas or :w <filename>", vim.log.levels.WARN)
+    ui.notify_warn("Buffer has no file name — use :saveas or :w <filename>")
     return
   end
   vim.cmd("update")
   local short = vim.fn.fnamemodify(name, ":t")
-  vim.notify("Saved " .. short, vim.log.levels.INFO)
+  ui.notify_info("Saved " .. short)
 end
 
 map({ "n", "i" }, "<C-s>", save_current_file, { desc = "Save Current File" })
@@ -420,7 +431,7 @@ map("n", "<leader>fs", save_current_file, { desc = "Save Current File" })
 
 map("n", "<leader>fa", function()
   vim.cmd("wall")
-  vim.notify("Saved all modified files", vim.log.levels.INFO)
+  ui.notify_info("Saved all modified files")
 end, { desc = "Save All Files" })
 
 map("n", "<leader>fS", function()
@@ -428,7 +439,7 @@ map("n", "<leader>fS", function()
   vim.ui.input({ prompt = " Save As: ", default = current }, function(input)
     if input and #input > 0 then
       vim.cmd("saveas! " .. vim.fn.fnameescape(input))
-      vim.notify("Saved as: " .. input, vim.log.levels.INFO)
+      ui.notify_info("Saved as: " .. input)
     end
   end)
 end, { desc = "Save As..." })
@@ -437,7 +448,7 @@ end, { desc = "Save As..." })
 -- Class / HTML File / ..." parity. Context-aware picker; JVM package derived
 -- from the target directory's position under a source root.
 local function new_file_from_template()
-  require("tetravim.util.filetemplate").new_file()
+  require("tetravim.util.edit.filetemplate").new_file()
 end
 map("n", "<leader>fn", new_file_from_template, { desc = "New File from Template" })
 map("n", "<leader>n", new_file_from_template, { desc = "New File from Template" })
@@ -454,7 +465,7 @@ vim.api.nvim_create_user_command("NewFromTemplate", new_file_from_template, {
 -- SonarQube/SonarLint rule diagnostics (Story 6.1) and osv-scanner CVE
 -- scanning of Maven/Gradle build files (Story 6.2). SonarLint analysis is
 -- driven by the language server wired in lsp-sonarlint.lua; the CVE scan is a
--- pure async shell-out to `osv-scanner` in tetravim.util.cve whose findings
+-- pure async shell-out to `osv-scanner` in tetravim.util.quality.cve whose findings
 -- are published as buffer diagnostics on the offending dependency lines.
 --
 -- Keys are grouped by feature type. Within each type "b" is the current-buffer
@@ -485,16 +496,16 @@ end, { desc = "All Project (Quickfix)" })
 -- repo and render a combined report in a persistent split. The "f"/"F" fix
 -- variants rewrite files in place, then reload the affected buffers.
 map("n", "<leader>xlb", function()
-  require("tetravim.util.lint").lint_now()
+  require("tetravim.util.edit.lint").lint_now()
 end, { desc = "Check Buffer" })
 map("n", "<leader>xlp", function()
-  require("tetravim.util.lint").project_run("check")
+  require("tetravim.util.edit.lint").project_run("check")
 end, { desc = "Check All Code (Project)" })
 map("n", "<leader>xlf", function()
-  require("tetravim.util.lint").fix_now()
+  require("tetravim.util.edit.lint").fix_now()
 end, { desc = "Fix Buffer (writes file)" })
 map("n", "<leader>xlF", function()
-  require("tetravim.util.lint").project_run("fix")
+  require("tetravim.util.edit.lint").project_run("fix")
 end, { desc = "Fix All Code (Project)" })
 
 -- --- Sonar -------------------------------------------------------------
@@ -504,9 +515,8 @@ end, { desc = "Fix All Code (Project)" })
 -- `sonar-scanner` (connected mode) when a sonar-project.properties declares
 -- `sonar.host.url` and the CLI is installed, otherwise a server-free sweep
 -- that feeds every Java/Kotlin/Scala source to the SonarLint LS and dumps
--- every finding into the quickfix list. See tetravim.util.sonar.project_scan.
+-- every finding into the quickfix list. See tetravim.util.quality.sonar.project_scan.
 map("n", "<leader>xsb", function()
-  local ui = require("tetravim.util.ui")
   if not pcall(require, "sonarlint") then
     ui.notify_err("sonarlint.nvim is not available -- run :Lazy sync / :MasonInstall sonarlint-language-server")
     return
@@ -522,7 +532,7 @@ map("n", "<leader>xsb", function()
 end, { desc = "Rule Description (Buffer)" })
 
 map("n", "<leader>xsp", function()
-  require("tetravim.util.sonar").project_scan()
+  require("tetravim.util.quality.sonar").project_scan()
 end, { desc = "Scan Whole Project" })
 
 -- --- CVE / vulnerabilities -------------------------------------------
@@ -530,8 +540,7 @@ end, { desc = "Scan Whole Project" })
 -- on each vulnerable dependency line. Project: `osv-scanner -r` over the
 -- whole tree, rendered in a persistent split (findings span many files).
 map("n", "<leader>xvb", function()
-  local ui = require("tetravim.util.ui")
-  local cve = require("tetravim.util.cve")
+  local cve = require("tetravim.util.quality.cve")
   local bufnr = vim.api.nvim_get_current_buf()
   local path = vim.api.nvim_buf_get_name(bufnr)
   local name = vim.fs.basename(path)
@@ -542,7 +551,7 @@ map("n", "<leader>xvb", function()
     ui.notify_err("<leader>xvb scans a Maven/Gradle build file -- open pom.xml or a *.gradle script first")
     return
   end
-  if path == "" or not (vim.uv or vim.loop).fs_stat(path) then
+  if path == "" or not vim.uv.fs_stat(path) then
     ui.notify_err("<leader>xvb: this buffer is not backed by a file on disk yet -- save it first")
     return
   end
@@ -571,11 +580,11 @@ map("n", "<leader>xvb", function()
 end, { desc = "Scan Build File (Buffer)" })
 
 map("n", "<leader>xvp", function()
-  require("tetravim.util.cve").project_scan()
+  require("tetravim.util.quality.cve").project_scan()
 end, { desc = "Scan Whole Project" })
 
 map("n", "<leader>xvc", function()
   local bufnr = vim.api.nvim_get_current_buf()
-  require("tetravim.util.cve").clear_diagnostics(bufnr)
-  require("tetravim.util.ui").notify_info("Cleared CVE diagnostics for this buffer")
+  require("tetravim.util.quality.cve").clear_diagnostics(bufnr)
+  ui.notify_info("Cleared CVE diagnostics for this buffer")
 end, { desc = "Clear Scan Diagnostics" })

@@ -38,8 +38,14 @@ TetraVim is **pure native Neovim** — standard LSPs, Tree-sitter, Mason tools, 
 
 ### Interactive Quickstart
 ```bash
-git clone https://github.com/petrolal/tetravim.nvim.git ~/.config/nvim
-cd ~/.config/nvim
+curl -fsSL https://raw.githubusercontent.com/petrolal/tetravim.nvim/main/install.sh | bash
+```
+
+Or, if you'd rather clone yourself first:
+
+```bash
+git clone https://github.com/petrolal/tetravim.nvim.git ~/tetravim.nvim
+cd ~/tetravim.nvim
 ./bootstrap.sh
 ```
 

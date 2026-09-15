@@ -2,11 +2,12 @@
 -- resolution (Spring Boot / Quarkus / MicroProfile).
 --
 -- Behavioural assertions that need the plugins actually loaded (quarkus.nvim /
--- microprofile.nvim launch, jdtls bundle extension) live in
--- scripts/validate-jvm-frameworks.sh -- forcing require("lazy").load() inside
--- plenary's harness corrupts lazy's internal state (see dap_jvm_spec.lua).
+-- microprofile.nvim launch, jdtls bundle extension) are NOT exercised here: the
+-- plenary busted subprocess has no third-party plugins on its runtimepath and
+-- forcing require("lazy").load() corrupts lazy's internal state (see
+-- dap_jvm_spec.lua). Verify those manually per the story's Verification section.
 
-local fw = require("tetravim.util.jvm_frameworks")
+local fw = require("tetravim.util.jvm.frameworks")
 
 local function tmpdir()
   local d = vim.fn.tempname()
@@ -20,7 +21,7 @@ local function touch(path)
   fh:close()
 end
 
-describe("tetravim.util.jvm_frameworks", function()
+describe("tetravim.util.jvm.frameworks", function()
   local saved
 
   before_each(function()
@@ -93,6 +94,7 @@ describe("tetravim.util.jvm_frameworks", function()
       "quarkus_ready",
       "spring_boot_ls_jar",
       "spring_boot_ready",
+      "fetch_jars",
     }) do
       assert.are.equal("function", type(fw[name]), name .. " missing")
     end
@@ -117,16 +119,22 @@ describe("JVM framework plugin specs (static shape)", function()
   it("lsp-spring-boot.lua declares spring-boot.nvim + the properties parser", function()
     local body = read("lua/tetravim/plugins/lsp-spring-boot.lua")
     assert.is_truthy(body:match("JavaHello/spring%-boot%.nvim"))
-    assert.is_truthy(body:match("lsp_capabilities"))
+    assert.is_truthy(body:match("lsp%.capabilities"))
     assert.is_truthy(body:match('"properties"'))
   end)
 
-  it("lsp-quarkus.lua declares quarkus.nvim + microprofile.nvim, gated on readiness", function()
+  it("lsp-quarkus.lua declares quarkus.nvim + microprofile.nvim, gated on the opt-in toggle", function()
     local body = read("lua/tetravim/plugins/lsp-quarkus.lua")
     assert.is_truthy(body:match("JavaHello/quarkus%.nvim"))
     assert.is_truthy(body:match("JavaHello/microprofile%.nvim"))
-    assert.is_truthy(body:match("quarkus_paths"))
-    assert.is_truthy(body:match("microprofile_paths"))
+    -- Activation moved behind tetravim.util.jvm.lsp_toggle: it is opt-in
+    -- (persisted flag + RAM guard), not "on whenever the jars resolve".
+    assert.is_truthy(body:match("jvm%.lsp_toggle"))
+    assert.is_truthy(body:match("should_autostart"))
+    -- The readiness path resolution still lives in the toggle module.
+    local toggle = read("lua/tetravim/util/jvm/lsp_toggle.lua")
+    assert.is_truthy(toggle:match("quarkus_paths"))
+    assert.is_truthy(toggle:match("microprofile_paths"))
   end)
 
   it("ftplugin/java.lua folds framework java_extensions() into the jdtls bundles", function()
@@ -141,7 +149,16 @@ describe("JVM framework plugin specs (static shape)", function()
     assert.is_truthy(read("lua/tetravim/plugins/tools-mason.lua"):match("vscode%-spring%-boot%-tools"))
   end)
 
-  it("health.lua has the JVM Framework Config LSP section", function()
-    assert.is_truthy(read("lua/tetravim/health.lua"):match("JVM Framework Config LSP"))
+  it("the healthcheck has the JVM Framework Config LSP section", function()
+    assert.is_truthy(require("tetravim.tests.helpers").health_source():match("JVM Framework Config LSP"))
+  end)
+
+  it("lsp-quarkus.lua declares TetraVimFetchJvmLspJars command", function()
+    local body = read("lua/tetravim/plugins/lsp-quarkus.lua")
+    assert.is_truthy(body:match("TetraVimFetchJvmLspJars"))
+  end)
+
+  it("jvm_frameworks exposes fetch_jars native function", function()
+    assert.are.equal("function", type(fw.fetch_jars))
   end)
 end)

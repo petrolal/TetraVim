@@ -31,18 +31,66 @@ return {
         "markdown",
         "markdown_inline",
         "query",
+        "regex", -- required by noice.nvim (cmdline regex highlighting) and Snacks.picker
+        "latex", -- required by Snacks.image for LaTeX math expression rendering
+        "scss", -- required by Snacks.image for SCSS image rendering
+        "typst", -- required by Snacks.image for Typst document rendering
+        "yaml", -- required by render-markdown (frontmatter) and DevOps / CI/CD
+        "http", -- required for .http syntax highlighting
+        -- NOTE: "norg" (Neorg) has no upstream nvim-treesitter grammar; install
+        -- via the neorg plugin (if used) or skip -- Snacks.image falls back gracefully.
       },
     },
     config = function(_, opts)
       require("nvim-treesitter").setup({})
 
-      if type(opts.ensure_installed) == "table" and #opts.ensure_installed > 0 then
-        require("nvim-treesitter").install(opts.ensure_installed)
+      local function install_parsers()
+        if type(opts.ensure_installed) == "table" and #opts.ensure_installed > 0 then
+          require("nvim-treesitter").install(opts.ensure_installed)
+        end
+      end
+
+      -- nvim-treesitter ("main" branch) shells out to `tree-sitter build` to compile parsers.
+      -- If the `tree-sitter` CLI is not yet on PATH (e.g. Mason is still installing
+      -- `tree-sitter-cli` in the background on a fresh setup), calling install() immediately
+      -- throws ENOENT errors for every parser. Guard behind an executable check and listen
+      -- for Mason to finish installing tree-sitter-cli as a fallback.
+      if vim.fn.executable("tree-sitter") == 1 then
+        install_parsers()
+      else
+        local ok_mr, mr = pcall(require, "mason-registry")
+        if ok_mr then
+          mr:on("package:install:success", function(pkg)
+            if pkg.name == "tree-sitter-cli" then
+              vim.schedule(install_parsers)
+            end
+          end)
+        end
+
+        vim.api.nvim_create_autocmd("User", {
+          pattern = "MasonToolsUpdateCompleted",
+          callback = function()
+            if vim.fn.executable("tree-sitter") == 1 then
+              install_parsers()
+            end
+          end,
+          once = true,
+        })
       end
 
       vim.api.nvim_create_autocmd("FileType", {
         group = vim.api.nvim_create_augroup("tetravim_treesitter_highlight", { clear = true }),
         callback = function(event)
+          -- Skip parsing very large / generated files (protobuf, jOOQ,
+          -- OpenAPI codegen, delomboked sources -- routine in JVM work). Full
+          -- Tree-sitter parsing on a multi-MB single file freezes the UI the
+          -- way IntelliJ's "file too large, code insight disabled" guards
+          -- against. snacks.bigfile also covers this, but keep the guard here
+          -- so it holds even if snacks is unavailable.
+          local ok_stat, stat = pcall(vim.uv.fs_stat, vim.api.nvim_buf_get_name(event.buf))
+          if ok_stat and stat and stat.size > 1024 * 1024 then
+            return
+          end
           pcall(vim.treesitter.start, event.buf)
         end,
       })

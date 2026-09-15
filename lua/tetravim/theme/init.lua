@@ -14,6 +14,8 @@
 
 local M = {}
 
+local ui = require("tetravim.util.ui")
+
 --- Canonical colourscheme name. Kept as a function because call sites
 --- historically treated the return value as an opaque theme token; there
 --- is now exactly one value.
@@ -27,15 +29,23 @@ end
 function M.apply()
   local ok, tetris = pcall(require, "tetravim.theme.tetris")
   if not ok then
-    vim.notify("tetravim.theme.tetris failed to load: " .. tostring(tetris), vim.log.levels.ERROR)
+    ui.notify_err("tetravim.theme.tetris failed to load: " .. tostring(tetris))
     return
   end
 
   tetris.apply()
-  _G._tetravim_current_highlights = tetris.highlights()
+
+  local transparency_ok, transparency = pcall(require, "tetravim.util.transparency")
+  if transparency_ok then
+    transparency.apply()
+  end
 
   local colors_ok, theme_colors = pcall(require, "tetravim.util.theme_colors")
   if colors_ok then
+    -- Hand the freshly-applied highlight table to the derived-colour cache
+    -- as a module field (previously a `_G._tetravim_current_highlights`
+    -- global) so `refresh_cache()` reads it back without touching `_G`.
+    theme_colors.current_highlights = tetris.highlights()
     theme_colors.refresh_cache()
   end
 end
