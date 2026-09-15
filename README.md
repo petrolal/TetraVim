@@ -1,4 +1,6 @@
 <div align="center" id="madewithlua">
+  <pre style="font-size: 2vw; line-height: 1.1;">
+  <div style="transform: scale(3.5); transform-origin: top center;">
   ╭────────────────────────────────────────────────╮  
   │                                                │  
   │   ████████      ██                   ██ ██     │  
@@ -7,6 +9,8 @@
   │      ██  \___|  \__ | |  \__,_| \__/ ██ ██     │  
   │                                                │  
   ╰────────────────────────────────────────────────╯  
+  </div>
+  </pre>
 </div>
 
 ---
