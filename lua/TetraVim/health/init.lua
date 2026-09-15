@@ -44,7 +44,10 @@ function M.check()
   for _, mod in ipairs(SECTIONS) do
     local section, err = load_section(mod)
     if section then
-      section.check()
+      local ok, check_err = pcall(section.check)
+      if not ok then
+        vim.health.error(mod .. ": health check crashed: " .. tostring(check_err))
+      end
     else
       vim.health.start(mod)
       vim.health.error("failed to load health section: " .. tostring(err))
