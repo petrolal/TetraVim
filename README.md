@@ -1,5 +1,12 @@
-<div align="center" id="madewithlua">
-  <pre>
+<div align="center">
+  <pre style="font-size: 2vw; line-height: 1.1;">
+    &nbsp;<br>
+    &nbsp;<br>
+    &nbsp;<br>
+    &nbsp;<br>
+    &nbsp;<br>
+    <div style="transform: scale(3.5); transform-origin: top center;">
+      <pre>
   ╭────────────────────────────────────────────────╮  
   │                                                │  
   │   ████████      ██                   ██ ██     │  
@@ -8,6 +15,13 @@
   │      ██  \___|  \__ | |  \__,_| \__/ ██ ██     │  
   │                                                │  
   ╰────────────────────────────────────────────────╯  
+      </pre>
+    </div>
+    &nbsp;<br>
+    &nbsp;<br>
+    &nbsp;<br>
+    &nbsp;<br>
+    &nbsp;<br>
   </pre>
 </div>
 
