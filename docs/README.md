@@ -181,4 +181,4 @@ What IntelliJ IDEA Ultimate supports out of the box, and how TetraVim covers it 
 
 ## 7. License
 
-This project is dual-licensed under either the [MIT License](../LICENSE) or the [BSD 2-Clause License](../LICENSE) at your option. Mandatory attribution to Lucas Petrola is required for any redistributions. See [LICENSE](../LICENSE) for details.
+This project is distributed solely under the [BSD 3-Clause License](../LICENSE). See [LICENSE](../LICENSE) for details.
