@@ -138,6 +138,7 @@ Anyone can test TetraVim in an isolated, disposable container without installing
 docker run -w /root --net=host -it --rm alpine:edge sh -c '
 	apk add sudo curl bash git neovim fzf ripgrep lazygit make && \
 	curl -fsSL https://raw.githubusercontent.com/petrolal/TetraVim/main/install.sh | bash && \
+    cd ~/.config/nvim \
 	nvim
 '
 ```

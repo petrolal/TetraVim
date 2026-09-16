@@ -158,6 +158,7 @@ if [ -n "$PKG_MGR" ]; then
 		! command -v jq >/dev/null 2>&1 && pkgs_to_install+=(jq)
 		! command -v rg >/dev/null 2>&1 && pkgs_to_install+=(ripgrep)
 		! command -v fd >/dev/null 2>&1 && pkgs_to_install+=(fd)
+		! command -v fzf >/dev/null 2>&1 && pkgs_to_install+=(fzf)
 		! command -v make >/dev/null 2>&1 && pkgs_to_install+=(make)
 		! command -v gcc >/dev/null 2>&1 && ! command -v clang >/dev/null 2>&1 && pkgs_to_install+=(base-devel)
 		! command -v gs >/dev/null 2>&1 && pkgs_to_install+=(ghostscript)
@@ -166,6 +167,7 @@ if [ -n "$PKG_MGR" ]; then
 		! command -v python3 >/dev/null 2>&1 && pkgs_to_install+=(python python-pip python-pynvim)
 		! command -v go >/dev/null 2>&1 && pkgs_to_install+=(go)
 		! command -v lua >/dev/null 2>&1 && pkgs_to_install+=(lua luarocks)
+		! command -v lazygit >/dev/null 2>&1 && pkgs_to_install+=(lazygit)
 		! command -v docker >/dev/null 2>&1 && pkgs_to_install+=(docker)
 		! command -v ansible >/dev/null 2>&1 && pkgs_to_install+=(ansible)
 		! command -v kubectl >/dev/null 2>&1 && pkgs_to_install+=(kubectl)
@@ -180,6 +182,7 @@ if [ -n "$PKG_MGR" ]; then
 		! command -v jq >/dev/null 2>&1 && pkgs_to_install+=(jq)
 		! command -v rg >/dev/null 2>&1 && pkgs_to_install+=(ripgrep)
 		! command -v fd >/dev/null 2>&1 && ! command -v fdfind >/dev/null 2>&1 && pkgs_to_install+=(fd-find)
+		! command -v fzf >/dev/null 2>&1 && pkgs_to_install+=(fzf)
 		! command -v make >/dev/null 2>&1 && pkgs_to_install+=(build-essential)
 		! command -v gs >/dev/null 2>&1 && pkgs_to_install+=(ghostscript)
 		! command -v java >/dev/null 2>&1 && pkgs_to_install+=(openjdk-21-jdk)
@@ -198,6 +201,7 @@ if [ -n "$PKG_MGR" ]; then
 		! command -v jq >/dev/null 2>&1 && pkgs_to_install+=(jq)
 		! command -v rg >/dev/null 2>&1 && pkgs_to_install+=(ripgrep)
 		! command -v fd >/dev/null 2>&1 && pkgs_to_install+=(fd-find)
+		! command -v fzf >/dev/null 2>&1 && pkgs_to_install+=(fzf)
 		! command -v make >/dev/null 2>&1 && pkgs_to_install+=(gcc gcc-c++ make)
 		! command -v gs >/dev/null 2>&1 && pkgs_to_install+=(ghostscript)
 		! command -v java >/dev/null 2>&1 && pkgs_to_install+=(java-21-openjdk-devel)
@@ -216,6 +220,7 @@ if [ -n "$PKG_MGR" ]; then
 		! command -v jq >/dev/null 2>&1 && pkgs_to_install+=(jq)
 		! command -v rg >/dev/null 2>&1 && pkgs_to_install+=(ripgrep)
 		! command -v fd >/dev/null 2>&1 && pkgs_to_install+=(fd)
+		! command -v fzf >/dev/null 2>&1 && pkgs_to_install+=(fzf)
 		! command -v make >/dev/null 2>&1 && pkgs_to_install+=(alpine-sdk)
 		! command -v gs >/dev/null 2>&1 && pkgs_to_install+=(ghostscript)
 		! command -v java >/dev/null 2>&1 && pkgs_to_install+=(openjdk17-jdk)
@@ -223,6 +228,7 @@ if [ -n "$PKG_MGR" ]; then
 		! command -v python3 >/dev/null 2>&1 && pkgs_to_install+=(python3 py3-pip)
 		! command -v go >/dev/null 2>&1 && pkgs_to_install+=(go)
 		! command -v lua >/dev/null 2>&1 && pkgs_to_install+=(lua5.4 luarocks)
+		! command -v lazygit >/dev/null 2>&1 && pkgs_to_install+=(lazygit)
 		! command -v tree-sitter >/dev/null 2>&1 && pkgs_to_install+=(tree-sitter-cli)
 		! command -v docker >/dev/null 2>&1 && pkgs_to_install+=(docker docker-cli)
 		! command -v kubectl >/dev/null 2>&1 && pkgs_to_install+=(kubectl)
@@ -234,12 +240,14 @@ if [ -n "$PKG_MGR" ]; then
 		! command -v jq >/dev/null 2>&1 && pkgs_to_install+=(jq)
 		! command -v rg >/dev/null 2>&1 && pkgs_to_install+=(ripgrep)
 		! command -v fd >/dev/null 2>&1 && pkgs_to_install+=(fd)
+		! command -v fzf >/dev/null 2>&1 && pkgs_to_install+=(fzf)
 		! command -v gs >/dev/null 2>&1 && pkgs_to_install+=(ghostscript)
 		! command -v java >/dev/null 2>&1 && pkgs_to_install+=(openjdk@21)
 		! command -v node >/dev/null 2>&1 && pkgs_to_install+=(node)
 		! command -v python3 >/dev/null 2>&1 && pkgs_to_install+=(python3)
 		! command -v go >/dev/null 2>&1 && pkgs_to_install+=(go)
 		! command -v lua >/dev/null 2>&1 && pkgs_to_install+=(lua luarocks)
+		! command -v lazygit >/dev/null 2>&1 && pkgs_to_install+=(lazygit)
 		! command -v tree-sitter >/dev/null 2>&1 && pkgs_to_install+=(tree-sitter)
 		! command -v terraform >/dev/null 2>&1 && pkgs_to_install+=(terraform)
 		! command -v ansible >/dev/null 2>&1 && pkgs_to_install+=(ansible)
@@ -318,11 +326,53 @@ fi
 pass "Neovim: $(nvim --version | head -n 1)"
 
 # ============================================================================
-# 0d. Cloud & DevOps Toolchain Binaries (Terraform, Kubectl, Helm, Helm-ls, SuperHTML, StyLua)
+# 0d. Cloud, DevOps & Language Toolchains (Terraform, Lazygit, Helm-ls, SuperHTML, StyLua)
 # ============================================================================
 section "Cloud, DevOps & Language Toolchains"
 
-# 1. Terraform / OpenTofu
+# 1. Lazygit
+if ! command -v lazygit >/dev/null 2>&1; then
+	warn "'lazygit' not found. Attempting install..."
+	if [ "$(uname -s)" = "Linux" ] && [ "$(uname -m)" = "x86_64" ] && command -v curl >/dev/null 2>&1; then
+		echo "  -> Downloading lazygit release..."
+		LAZYGIT_VERSION=$(curl -s "https://api.github.com/repos/jesseduffield/lazygit/releases/latest" 2>/dev/null | grep -Po '"tag_name": "v\K[^"]*' || echo "0.44.1")
+		curl -fsSL "https://github.com/jesseduffield/lazygit/releases/download/v${LAZYGIT_VERSION}/lazygit_${LAZYGIT_VERSION}_Linux_x86_64.tar.gz" | tar -xz -C "$HOME/.local/bin" lazygit 2>/dev/null &&
+			chmod +x "$HOME/.local/bin/lazygit" &&
+			pass "lazygit installed -> $HOME/.local/bin/lazygit" || true
+	fi
+else
+	pass "lazygit ready ($(command -v lazygit))"
+fi
+
+# 1b. Ripgrep (rg) fallback
+if ! command -v rg >/dev/null 2>&1; then
+	warn "'ripgrep' not found. Attempting install..."
+	if [ "$(uname -s)" = "Linux" ] && [ "$(uname -m)" = "x86_64" ] && command -v curl >/dev/null 2>&1; then
+		echo "  -> Downloading ripgrep release..."
+		RG_VER="14.1.1"
+		curl -fsSL "https://github.com/BurntSushi/ripgrep/releases/download/${RG_VER}/ripgrep-${RG_VER}-x86_64-unknown-linux-musl.tar.gz" | tar -xz -C "$HOME/.local/bin" --strip-components=1 "ripgrep-${RG_VER}-x86_64-unknown-linux-musl/rg" 2>/dev/null &&
+			chmod +x "$HOME/.local/bin/rg" &&
+			pass "ripgrep installed -> $HOME/.local/bin/rg" || true
+	fi
+else
+	pass "ripgrep ready ($(command -v rg))"
+fi
+
+# 1c. fzf fallback
+if ! command -v fzf >/dev/null 2>&1; then
+	warn "'fzf' not found. Attempting install..."
+	if [ "$(uname -s)" = "Linux" ] && [ "$(uname -m)" = "x86_64" ] && command -v curl >/dev/null 2>&1; then
+		echo "  -> Downloading fzf release..."
+		FZF_VER="0.55.0"
+		curl -fsSL "https://github.com/junegunn/fzf/releases/download/v${FZF_VER}/fzf-${FZF_VER}-linux_amd64.tar.gz" | tar -xz -C "$HOME/.local/bin" 2>/dev/null &&
+			chmod +x "$HOME/.local/bin/fzf" &&
+			pass "fzf installed -> $HOME/.local/bin/fzf" || true
+	fi
+else
+	pass "fzf ready ($(command -v fzf))"
+fi
+
+# 2. Terraform / OpenTofu
 if ! command -v terraform >/dev/null 2>&1 && ! command -v tofu >/dev/null 2>&1; then
 	warn "'terraform' not found. Attempting install..."
 	if [ "$(uname -s)" = "Linux" ] && [ "$(uname -m)" = "x86_64" ] && command -v curl >/dev/null 2>&1; then
@@ -338,7 +388,7 @@ else
 	pass "Terraform / OpenTofu ready ($(command -v terraform 2>/dev/null || command -v tofu))"
 fi
 
-# 2. Kubectl
+# 3. Kubectl
 if ! command -v kubectl >/dev/null 2>&1; then
 	warn "'kubectl' not found. Attempting install..."
 	if [ "$(uname -s)" = "Linux" ] && command -v curl >/dev/null 2>&1; then
@@ -354,7 +404,7 @@ else
 	pass "kubectl ready ($(command -v kubectl))"
 fi
 
-# 3. Helm
+# 4. Helm
 if ! command -v helm >/dev/null 2>&1; then
 	warn "'helm' not found. Attempting install..."
 	if command -v curl >/dev/null 2>&1; then
@@ -366,7 +416,7 @@ else
 	pass "helm ready ($(command -v helm))"
 fi
 
-# 4. Helm Language Server (helm-ls)
+# 5. Helm Language Server (helm-ls)
 if ! command -v helm_ls >/dev/null 2>&1 && ! command -v helm-ls >/dev/null 2>&1; then
 	if [ "$(uname -s)" = "Linux" ] && [ "$(uname -m)" = "x86_64" ] && command -v curl >/dev/null 2>&1; then
 		echo "  -> Downloading helm-ls..."
@@ -380,7 +430,7 @@ else
 	pass "helm-ls ready ($(command -v helm_ls 2>/dev/null || command -v helm-ls))"
 fi
 
-# 5. SuperHTML Language Server
+# 6. SuperHTML Language Server
 if ! command -v superhtml >/dev/null 2>&1; then
 	if [ "$(uname -s)" = "Linux" ] && [ "$(uname -m)" = "x86_64" ] && command -v curl >/dev/null 2>&1; then
 		echo "  -> Downloading superhtml..."
@@ -393,7 +443,7 @@ else
 	pass "superhtml ready ($(command -v superhtml))"
 fi
 
-# 6. StyLua (Lua Formatter)
+# 7. StyLua (Lua Formatter)
 if ! command -v stylua >/dev/null 2>&1; then
 	if command -v npm >/dev/null 2>&1; then
 		npm install -g @johnnymorganz/stylua-bin >/dev/null 2>&1 && pass "stylua installed via npm" || true
@@ -410,7 +460,7 @@ else
 	pass "stylua ready ($(command -v stylua))"
 fi
 
-# 7. Ansible
+# 8. Ansible
 if ! command -v ansible >/dev/null 2>&1; then
 	if command -v pip3 >/dev/null 2>&1 || command -v pip >/dev/null 2>&1; then
 		PIP="$(command -v pip3 2>/dev/null || command -v pip)"
@@ -422,7 +472,7 @@ else
 	pass "ansible ready ($(command -v ansible))"
 fi
 
-# 8. Docker
+# 9. Docker
 if command -v docker >/dev/null 2>&1; then
 	pass "docker ready ($(command -v docker))"
 else
@@ -619,9 +669,18 @@ else
 fi
 
 # ============================================================================
-# 8. Scala lint & format tools (scalafmt / scalastyle)
+# 8. Scala lint & format tools (scalafmt / scalastyle via Coursier)
 # ============================================================================
 section "Scala lint & format tools (scalafmt / scalastyle)"
+
+if ! command -v cs >/dev/null 2>&1 && ! command -v coursier >/dev/null 2>&1; then
+	if [ "$(uname -s)" = "Linux" ] && [ "$(uname -m)" = "x86_64" ] && command -v curl >/dev/null 2>&1; then
+		echo "  -> Downloading Coursier (cs)..."
+		curl -fsSL "https://github.com/coursier/launchers/raw/master/cs-x86_64-pc-linux.gz" | gzip -d > "$HOME/.local/bin/cs" 2>/dev/null &&
+			chmod +x "$HOME/.local/bin/cs" 2>/dev/null &&
+			pass "coursier (cs) installed -> $HOME/.local/bin/cs" || true
+	fi
+fi
 
 if command -v cs >/dev/null 2>&1 || command -v coursier >/dev/null 2>&1; then
 	CS="$(command -v cs 2>/dev/null || command -v coursier)"
