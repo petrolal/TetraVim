@@ -19,6 +19,8 @@
   ·
   <a href="#-keymaps--navigation">Keymaps</a>
   ·
+  <a href="#-file-structure">Structure</a>
+  ·
   <a href="docs/README.md#6-intellij-idea-ultimate-parity-matrix">IntelliJ Parity</a>
 </h4>
 
@@ -213,3 +215,61 @@ Sincere appreciation to the following projects, plugin authors, and the Neovim c
 - [Oil.nvim](https://github.com/stevearc/oil.nvim) & [stevearc](https://github.com/stevearc)
 - [NvChad](https://github.com/NvChad/NvChad)
 - [LunarVim](https://github.com/LunarVim)
+
+## 📂 File Structure
+
+The files under `lua/TetraVim/core/` are automatically loaded at the appropriate time, so you don't need to require those files manually.
+**TetraVim** comes with a modular core configuration that sets up options, keymaps, autocmds, and diagnostics.
+
+All plugin specifications are organized under `lua/TetraVim/plugins/` and automatically loaded by [lazy.nvim](https://github.com/folke/lazy.nvim).
+
+<pre>
+~/.config/nvim
+├── colors
+│   └── TetraVim.lua
+├── ftplugin
+│   ├── java.lua
+│   ├── kotlin.lua
+│   ├── sql.lua
+│   └── **
+├── lua
+│   └── TetraVim
+│       ├── core
+│       │   ├── autocmds.lua
+│       │   ├── devops.lua
+│       │   ├── diagnostics.lua
+│       │   ├── health_json.lua
+│       │   ├── init.lua
+│       │   ├── keymaps.lua
+│       │   ├── lang_keymaps.lua
+│       │   ├── lazy.lua
+│       │   ├── options.lua
+│       │   └── setup.lua
+│       ├── health
+│       │   ├── ai.lua
+│       │   ├── devops.lua
+│       │   ├── jvm.lua
+│       │   └── **
+│       ├── plugins
+│       │   ├── ai-*.lua
+│       │   ├── cloud-*.lua
+│       │   ├── core-treesitter.lua
+│       │   ├── editor-*.lua
+│       │   ├── lsp-*.lua
+│       │   ├── tools-*.lua
+│       │   └── ui-*.lua
+│       ├── theme
+│       │   ├── init.lua
+│       │   └── tetris.lua
+│       └── util
+│           ├── ai
+│           ├── clients
+│           ├── cloud
+│           ├── jvm
+│           ├── lsp
+│           ├── quality
+│           └── **
+├── bootstrap.sh
+├── init.lua
+└── install.sh
+</pre>
