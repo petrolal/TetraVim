@@ -83,10 +83,8 @@
 - [Neovim ≥ 0.11](https://github.com/neovim/neovim/releases/tag/stable) <sup>[[1]](#1)</sup>
 - [Java JDK ≥ 17](https://adoptium.net/) (Required for JDTLS, Metals, Kotlin LS; Java 21+ supported) <sup>[[2]](#2)</sup>
 - [Nerd Fonts (v3.0+)](https://www.nerdfonts.com/font-downloads) (e.g. _JetBrainsMono Nerd Font_) <sup>[[3]](#3)</sup>
-- [ripgrep](https://github.com/BurntSushi/ripgrep) and [fd](https://github.com/sharkdp/fd) (for live grep and picker search)
 - A C compiler (`gcc`, `clang`, or `cc`) & `make` (for Tree-sitter parsers and telescope-fzf-native)
 - [Git](https://git-scm.com/) (for plugin management via `lazy.nvim`)
-- Terminal with true color (24-bit) support <sup>[[4]](#4)</sup>
 - Optional Requirements:
   - [osv-scanner](https://github.com/google/osv-scanner) - dependency CVE vulnerability audits (`<leader>xv`)
   - [grpcurl](https://github.com/fullstorydev/grpcurl) & [grpcui](https://github.com/fullstorydev/grpcui) - gRPC interactive client (`<leader>ag`)
@@ -127,60 +125,6 @@ bash bootstrap.sh
 The interactive bootstrap verifies system dependencies, syncs Lazy.nvim plugins, provisions Mason tools, downloads JVM extension bundles, and validates installation health.
 
 </details>
-
-<details><summary>Headless & CI / Container Provisioning</summary>
-
-For CI/CD pipelines, Docker containers, GitHub Codespaces, or Coder environments:
-
-```shell
-git clone https://github.com/petrolal/TetraVim.git ~/.config/nvim
-nvim --headless -u ~/.config/nvim/init.lua -c "lua require('TetraVim.core.setup').run()" -c "qa!"
-```
-
-</details>
-
-## 📦 Basic Setup
-
-#### Manage Plugins
-
-- Run `:Lazy sync` to install, update, and clean plugins
-- Run `:Lazy check` to check for available plugin updates
-- Run `:Lazy update` to apply plugin updates
-
-#### Manage Language Servers & Tools
-
-- Run `:Mason` to browse installed and available LSPs, DAPs, linters, and formatters
-- Run `:MasonToolsInstall` to install all recommended language tools
-- Run `:TetraVimFetchJvmLspJars` to download Quarkus and MicroProfile language server bundles
-
-#### Install Language Parsers
-
-- Enter `:TSInstall <language>` followed by the language you want to install
-- Example: `:TSInstall java kotlin scala terraform yaml json`
-
-#### In-Editor Health Check
-
-- Run `:checkhealth TetraVim` to run full diagnostic probes across all subsystems
-- Run `:CheckHealthJson` for machine-readable JSON health status in automated environments
-
-## ⌨️ Keymaps & Navigation
-
-`<leader>` is mapped to `Space`, `<localleader>` to `\`.
-
-| Keys         | Description                                                                              |
-| ------------ | ---------------------------------------------------------------------------------------- |
-| `<leader>c`  | Code & LSP actions (definition, references, rename, format, codelens)                    |
-| `<leader>j`  | JVM platform controls (Spring beans, endpoints, build sync, test coverage)               |
-| `<leader>o`  | DevOps & Cloud actions (Terraform, Docker, Kubernetes, Ansible)                          |
-| `<leader>a`  | API & Data tools (`<leader>ah` HTTP client, `<leader>ag` gRPC, `<leader>ad` DB explorer) |
-| `<leader>x`  | Code quality & security (`<leader>xs` Sonar, `<leader>xv` CVE audit, `<leader>xt` Todo)  |
-| `<leader>r`  | Task runner & Overseer commands                                                          |
-| `<leader>e`  | Open file explorer ([Oil.nvim](https://github.com/stevearc/oil.nvim))                    |
-| `<leader>s`  | Search & Pickers (files, live grep, buffers, symbols, marks)                             |
-| `<leader>ut` | Toggle background transparency                                                           |
-| `<leader>cb` | Open winbar breadcrumb symbol picker                                                     |
-| `[d` / `]d`  | Jump to previous / next diagnostic                                                       |
-| `[e` / `]e`  | Jump to previous / next error                                                            |
 
 ## 🗒️ Links
 
