@@ -155,14 +155,7 @@ All plugin specifications are organized under `lua/TetraVim/plugins/` and automa
 │       ├── core
 │       │   ├── autocmds.lua
 │       │   ├── devops.lua
-│       │   ├── diagnostics.lua
-│       │   ├── health_json.lua
-│       │   ├── init.lua
-│       │   ├── keymaps.lua
-│       │   ├── lang_keymaps.lua
-│       │   ├── lazy.lua
-│       │   ├── options.lua
-│       │   └── setup.lua
+│       │   └── **
 │       ├── health
 │       │   ├── ai.lua
 │       │   ├── devops.lua
@@ -171,21 +164,12 @@ All plugin specifications are organized under `lua/TetraVim/plugins/` and automa
 │       ├── plugins
 │       │   ├── ai-*.lua
 │       │   ├── cloud-*.lua
-│       │   ├── core-treesitter.lua
-│       │   ├── editor-*.lua
-│       │   ├── lsp-*.lua
-│       │   ├── tools-*.lua
-│       │   └── ui-*.lua
+        │   └── **
 │       ├── theme
 │       │   ├── init.lua
 │       │   └── tetris.lua
 │       └── util
 │           ├── ai
-│           ├── clients
-│           ├── cloud
-│           ├── jvm
-│           ├── lsp
-│           ├── quality
 │           └── **
 ├── bootstrap.sh
 ├── init.lua
