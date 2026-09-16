@@ -105,7 +105,7 @@ Run the one-line installer:
 curl -fsSL https://raw.githubusercontent.com/petrolal/TetraVim/main/install.sh | bash
 ```
 
-<details><sumary>Manual Installation</summary>
+<details><summary>Manual Installation</summary>
 
 - Make a backup of your current Neovim state
 
@@ -125,6 +125,7 @@ bash bootstrap.sh
 ```
 
 The interactive bootstrap verifies system dependencies, syncs Lazy.nvim plugins, provisions Mason tools, downloads JVM extension bundles, and validates installation health.
+
 </details>
 
 <details><summary>Headless & CI / Container Provisioning</summary>
