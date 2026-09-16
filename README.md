@@ -1,8 +1,9 @@
-<div allign-"center">
+<div align-"center">
 
 ![Oil File Management](docs/screenshots/banner.png)
 
 </div>
+
 ---
 
 <h4 align="center">
