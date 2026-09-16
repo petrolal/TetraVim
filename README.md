@@ -164,7 +164,7 @@ All plugin specifications are organized under `lua/TetraVim/plugins/` and automa
 │       ├── plugins
 │       │   ├── ai-*.lua
 │       │   ├── cloud-*.lua
-        │   └── **
+│       │   └── **
 │       ├── theme
 │       │   ├── init.lua
 │       │   └── tetris.lua
