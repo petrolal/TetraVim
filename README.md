@@ -1,17 +1,4 @@
-<div align="center" id="madewithlua">
-  <pre style="font-size: 2vw; line-height: 1.1;">
-  <div style="transform: scale(3.5); transform-origin: top center;">
-  ╭────────────────────────────────────────────────╮  
-  │                                                │  
-  │   ████████      ██                   ██ ██     │  
-  │      ██   ___  █████ _ __ ____  _  _ ██ ██     │  
-  │      ██  / -_)  ██  | '__/ _  || |/ /   ██ ██  │  
-  │      ██  \___|  \__ | |  \__,_| \__/ ██ ██     │  
-  │                                                │  
-  ╰────────────────────────────────────────────────╯  
-  </div>
-  </pre>
-</div>
+![Oil File Management](docs/screenshots/banner.png)
 
 ---
 
