@@ -107,7 +107,7 @@ curl -fsSL https://raw.githubusercontent.com/petrolal/TetraVim/main/install.sh |
 
 <details><sumary>Manual Installation</summary>
 
-- 1. Make a backup of your current Neovim state
+- Make a backup of your current Neovim state
 
 ```shell
 mv ~/.config/nvim ~/.config/nvim.bak
@@ -116,7 +116,7 @@ mv ~/.local/state/nvim ~/.local/state/nvim.bak
 mv ~/.cache/nvim ~/.cache/nvim.bak
 ```
 
-- 2. Clone and run bootstrap
+- Clone and run bootstrap
 
 ```shell
 git clone https://github.com/petrolal/TetraVim.git ~/TetraVim
