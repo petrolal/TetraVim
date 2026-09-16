@@ -93,18 +93,6 @@
   - [Docker](https://www.docker.com/) & [kubectl](https://kubernetes.io/docs/tasks/tools/) - container and cluster management (`<leader>od`, `<leader>ok`)
   - [lazygit](https://github.com/jesseduffield/lazygit) - Git TUI modal (`<leader>gg`)
 
-> [!NOTE]
-> <sup id="1">[1]</sup> TetraVim requires Neovim 0.11+ to leverage native `vim.lsp.config`/`vim.lsp.enable`, `vim.diagnostic.jump`, and modern floating window styling.
-
-> [!NOTE]
-> <sup id="2">[2]</sup> Java 17+ is mandatory for running modern JVM language servers (JDTLS, Metals, Kotlin LS). Target projects may still compile against earlier Java versions.
-
-> [!NOTE]
-> <sup id="3">[3]</sup> All icons rendered in dashboard, statusline, bufferline, winbar breadcrumbs, and completion menus require a Nerd Font. Install a font of your choice and set it in your terminal emulator.
-
-> [!NOTE]
-> <sup id="4">[4]</sup> For optimal theme colors, ensure your terminal emulator has 24-bit true color enabled (e.g. [WezTerm](https://wezterm.org), [Ghostty](https://ghostty.org), [Kitty](https://sw.kovidgoyal.net/kitty/), [Alacritty](https://alacritty.org), or modern [iTerm2](https://iterm2.com/)).
-
 ## 🛠️ Installation
 
 TetraVim installs to `~/TetraVim` and symlinks `~/.config/nvim` directly to it, ensuring clean synchronization and Git tracking.
