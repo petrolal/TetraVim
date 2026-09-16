@@ -128,14 +128,6 @@ The interactive bootstrap verifies system dependencies, syncs Lazy.nvim plugins,
 
 </details>
 
-## 🗒️ Links
-
-- [Technical Architecture & Verification Guide](docs/README.md)
-- [IntelliJ IDEA Ultimate Parity Matrix](docs/README.md#6-intellij-idea-ultimate-parity-matrix)
-- [Subsystem Verification & Test Suites](docs/README.md#5-provisioning--verification-suites)
-- [Code of Conduct](CODE_OF_CONDUCT.md)
-- [License (GPL-3.0)](LICENSE)
-
 ## 🚀 Contributing
 
 Contributions are warmly welcomed! Please check our [Code of Conduct](CODE_OF_CONDUCT.md) before participating. Pull requests and feature suggestions are evaluated through our CI verification suites (`stylua`, Plenary busted tests, and headless provisioning checks).
