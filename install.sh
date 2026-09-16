@@ -26,6 +26,11 @@ EOF
 REPO_URL="https://github.com/petrolal/TetraVim.git"
 TETRAVIM_HOME="$HOME/TetraVim"
 
+if command -v apk >/dev/null 2>&1 && (! command -v git >/dev/null 2>&1 || ! command -v nvim >/dev/null 2>&1); then
+	echo "→ Installing system dependencies via apk..."
+	apk add --no-cache git bash curl neovim ripgrep fd alpine-sdk openjdk17-jdk tree-sitter-cli nodejs npm
+fi
+
 if ! command -v git >/dev/null 2>&1; then
 	echo "✖ git is required to install TetraVim." >&2
 	exit 1
