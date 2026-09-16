@@ -213,9 +213,3 @@ Sincere appreciation to the following projects, plugin authors, and the Neovim c
 - [Oil.nvim](https://github.com/stevearc/oil.nvim) & [stevearc](https://github.com/stevearc)
 - [NvChad](https://github.com/NvChad/NvChad)
 - [LunarVim](https://github.com/LunarVim)
-
-<div align="center" id="madewithlua">
-
-[![Lua](https://img.shields.io/badge/Made%20with%20Lua-blue.svg?style=for-the-badge&logo=lua)](https://lua.org)
-
-</div>
