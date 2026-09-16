@@ -130,6 +130,31 @@ The interactive bootstrap verifies system dependencies, syncs Lazy.nvim plugins,
 
 </details>
 
+<details><summary>🐳 Try it with Docker</summary>
+
+Test TetraVim in an isolated, disposable container without modifying your local environment:
+
+```bash
+docker run --net=host -w /root -it --rm alpine:edge sh -uelic '
+  apk add --no-cache git bash curl neovim ripgrep fd build-base openjdk17-jdk --update
+  git clone https://github.com/petrolal/TetraVim.git ~/TetraVim
+  bash ~/TetraVim/bootstrap.sh
+  nvim
+'
+```
+
+To test your **local changes** directly from your current workspace:
+
+```bash
+docker run --net=host -w /root -v "$PWD":/root/TetraVim -it --rm alpine:edge sh -uelic '
+  apk add --no-cache git bash curl neovim ripgrep fd build-base openjdk17-jdk --update
+  bash /root/TetraVim/bootstrap.sh
+  nvim
+'
+```
+
+</details>
+
 ## 🚀 Contributing
 
 Contributions are warmly welcomed! Please check our [Code of Conduct](CODE_OF_CONDUCT.md) before participating. Pull requests and feature suggestions are evaluated through our CI verification suites (`stylua`, Plenary busted tests, and headless provisioning checks).
