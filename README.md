@@ -202,20 +202,6 @@ nvim --headless -u ~/.config/nvim/init.lua -c "lua require('TetraVim.core.setup'
 
 Contributions are warmly welcomed! Please check our [Code of Conduct](CODE_OF_CONDUCT.md) before participating. Pull requests and feature suggestions are evaluated through our CI verification suites (`stylua`, Plenary busted tests, and headless provisioning checks).
 
-## ⭐ Credits
-
-Sincere appreciation to the following projects, plugin authors, and the Neovim community that make TetraVim possible:
-
-- [Neovim](https://neovim.io)
-- [AstroNvim](https://astronvim.com)
-- [Snacks.nvim](https://github.com/folke/snacks.nvim) & [folke](https://github.com/folke)
-- [nvim-jdtls](https://github.com/mfussenegger/nvim-jdtls) & Eclipse JDT LS
-- [nvim-metals](https://github.com/scalameta/nvim-metals)
-- [spring-boot.nvim](https://github.com/JavaHello/spring-boot.nvim) & [JavaHello](https://github.com/JavaHello)
-- [Oil.nvim](https://github.com/stevearc/oil.nvim) & [stevearc](https://github.com/stevearc)
-- [NvChad](https://github.com/NvChad/NvChad)
-- [LunarVim](https://github.com/LunarVim)
-
 ## 📂 File Structure
 
 The files under `lua/TetraVim/core/` are automatically loaded at the appropriate time, so you don't need to require those files manually.
@@ -273,3 +259,17 @@ All plugin specifications are organized under `lua/TetraVim/plugins/` and automa
 ├── init.lua
 └── install.sh
 </pre>
+
+## ⭐ Credits
+
+Sincere appreciation to the following projects, plugin authors, and the Neovim community that make TetraVim possible:
+
+- [Neovim](https://neovim.io)
+- [AstroNvim](https://astronvim.com)
+- [Snacks.nvim](https://github.com/folke/snacks.nvim) & [folke](https://github.com/folke)
+- [nvim-jdtls](https://github.com/mfussenegger/nvim-jdtls) & Eclipse JDT LS
+- [nvim-metals](https://github.com/scalameta/nvim-metals)
+- [spring-boot.nvim](https://github.com/JavaHello/spring-boot.nvim) & [JavaHello](https://github.com/JavaHello)
+- [Oil.nvim](https://github.com/stevearc/oil.nvim) & [stevearc](https://github.com/stevearc)
+- [NvChad](https://github.com/NvChad/NvChad)
+- [LunarVim](https://github.com/LunarVim)
