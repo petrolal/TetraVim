@@ -21,9 +21,9 @@
   ·
   <a href="#-file-structure">Structure</a>
   ·
-  <a href="#-credits">Credits</a>
-  ·
   <a href="docs/README.md#6-intellij-idea-ultimate-parity-matrix">IntelliJ Parity</a>
+  ·
+  <a href="#-credits">Credits</a>
 </h4>
 
 <p align="center">
