@@ -83,8 +83,10 @@
 - [Neovim ≥ 0.11](https://github.com/neovim/neovim/releases/tag/stable) <sup>[[1]](#1)</sup>
 - [Java JDK ≥ 17](https://adoptium.net/) (Required for JDTLS, Metals, Kotlin LS; Java 21+ supported) <sup>[[2]](#2)</sup>
 - [Nerd Fonts (v3.0+)](https://www.nerdfonts.com/font-downloads) (e.g. _JetBrainsMono Nerd Font_) <sup>[[3]](#3)</sup>
+- [ripgrep](https://github.com/BurntSushi/ripgrep) and [fd](https://github.com/sharkdp/fd) (for live grep and picker search)
 - A C compiler (`gcc`, `clang`, or `cc`) & `make` (for Tree-sitter parsers and telescope-fzf-native)
 - [Git](https://git-scm.com/) (for plugin management via `lazy.nvim`)
+- Terminal with true color (24-bit) support <sup>[[4]](#4)</sup>
 - Optional Requirements:
   - [osv-scanner](https://github.com/google/osv-scanner) - dependency CVE vulnerability audits (`<leader>xv`)
   - [grpcurl](https://github.com/fullstorydev/grpcurl) & [grpcui](https://github.com/fullstorydev/grpcui) - gRPC interactive client (`<leader>ag`)
