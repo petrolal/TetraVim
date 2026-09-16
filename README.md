@@ -95,13 +95,15 @@
 
 TetraVim installs to `~/TetraVim` and symlinks `~/.config/nvim` directly to it, ensuring clean synchronization and Git tracking.
 
-### Interactive Quickstart (Linux / macOS)
+<details><summary>Interactive Quickstart (Linux / macOS)</summary>
 
 Run the one-line installer:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/petrolal/TetraVim/main/install.sh | bash
 ```
+
+</details>
 
 <details><summary>Manual Installation</summary>
 
