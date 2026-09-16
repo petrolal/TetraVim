@@ -135,7 +135,11 @@ The interactive bootstrap verifies system dependencies, syncs Lazy.nvim plugins,
 Anyone can test TetraVim in an isolated, disposable container without installing Neovim, Java, or dependencies on their host machine:
 
 ```bash
-docker run --net=host -it --rm alpine:edge sh -c "apk add --no-cache curl bash && curl -fsSL https://raw.githubusercontent.com/petrolal/TetraVim/main/install.sh | bash && nvim"
+docker run -w /root --net=host -it --rm alpine:edge sh -c '
+	apk add sudo curl bash git neovim fzf ripgrep lazygit make && \
+	curl -fsSL https://raw.githubusercontent.com/petrolal/TetraVim/main/install.sh | bash && \
+	nvim
+'
 ```
 
 </details>

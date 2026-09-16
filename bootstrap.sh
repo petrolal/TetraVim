@@ -136,11 +136,9 @@ fi
 REPO_DIR="$TETRAVIM_HOME"
 pass "Repo at canonical location: $REPO_DIR"
 
-# Ensure ~/.local/bin is created and on PATH for this script session
+# Ensure ~/.local/bin and go bin are on PATH for this script session
 mkdir -p "$HOME/.local/bin"
-if ! echo "$PATH" | grep -q "$HOME/.local/bin"; then
-	export PATH="$HOME/.local/bin:$PATH"
-fi
+export PATH="$HOME/.local/bin:$HOME/go/bin:${XDG_DATA_HOME:-$HOME/.local/share}/nvim/mason/bin:$PATH"
 
 # ============================================================================
 # 0b. System package provisioning (Base, Toolchains & Cloud CLIs)
@@ -151,12 +149,12 @@ if [ -n "$PKG_MGR" ]; then
 	echo "  -> Detected package manager: $PKG_MGR"
 	pkgs_to_install=()
 
-	# 1. Base tools
 	case "$PKG_MGR" in
 	pacman)
 		! command -v git >/dev/null 2>&1 && pkgs_to_install+=(git)
 		! command -v curl >/dev/null 2>&1 && pkgs_to_install+=(curl)
 		! command -v unzip >/dev/null 2>&1 && pkgs_to_install+=(unzip)
+		! command -v tar >/dev/null 2>&1 && pkgs_to_install+=(tar)
 		! command -v jq >/dev/null 2>&1 && pkgs_to_install+=(jq)
 		! command -v rg >/dev/null 2>&1 && pkgs_to_install+=(ripgrep)
 		! command -v fd >/dev/null 2>&1 && pkgs_to_install+=(fd)
@@ -167,6 +165,7 @@ if [ -n "$PKG_MGR" ]; then
 		! command -v node >/dev/null 2>&1 && pkgs_to_install+=(nodejs npm)
 		! command -v python3 >/dev/null 2>&1 && pkgs_to_install+=(python python-pip python-pynvim)
 		! command -v go >/dev/null 2>&1 && pkgs_to_install+=(go)
+		! command -v lua >/dev/null 2>&1 && pkgs_to_install+=(lua luarocks)
 		! command -v docker >/dev/null 2>&1 && pkgs_to_install+=(docker)
 		! command -v ansible >/dev/null 2>&1 && pkgs_to_install+=(ansible)
 		! command -v kubectl >/dev/null 2>&1 && pkgs_to_install+=(kubectl)
@@ -177,6 +176,7 @@ if [ -n "$PKG_MGR" ]; then
 		! command -v git >/dev/null 2>&1 && pkgs_to_install+=(git)
 		! command -v curl >/dev/null 2>&1 && pkgs_to_install+=(curl)
 		! command -v unzip >/dev/null 2>&1 && pkgs_to_install+=(unzip)
+		! command -v tar >/dev/null 2>&1 && pkgs_to_install+=(tar)
 		! command -v jq >/dev/null 2>&1 && pkgs_to_install+=(jq)
 		! command -v rg >/dev/null 2>&1 && pkgs_to_install+=(ripgrep)
 		! command -v fd >/dev/null 2>&1 && ! command -v fdfind >/dev/null 2>&1 && pkgs_to_install+=(fd-find)
@@ -186,6 +186,7 @@ if [ -n "$PKG_MGR" ]; then
 		! command -v node >/dev/null 2>&1 && pkgs_to_install+=(nodejs npm)
 		! command -v python3 >/dev/null 2>&1 && pkgs_to_install+=(python3 python3-pip python3-pynvim)
 		! command -v go >/dev/null 2>&1 && pkgs_to_install+=(golang)
+		! command -v lua >/dev/null 2>&1 && pkgs_to_install+=(lua5.4 luarocks)
 		! command -v docker >/dev/null 2>&1 && pkgs_to_install+=(docker.io)
 		! command -v ansible >/dev/null 2>&1 && pkgs_to_install+=(ansible)
 		;;
@@ -193,6 +194,7 @@ if [ -n "$PKG_MGR" ]; then
 		! command -v git >/dev/null 2>&1 && pkgs_to_install+=(git)
 		! command -v curl >/dev/null 2>&1 && pkgs_to_install+=(curl)
 		! command -v unzip >/dev/null 2>&1 && pkgs_to_install+=(unzip)
+		! command -v tar >/dev/null 2>&1 && pkgs_to_install+=(tar)
 		! command -v jq >/dev/null 2>&1 && pkgs_to_install+=(jq)
 		! command -v rg >/dev/null 2>&1 && pkgs_to_install+=(ripgrep)
 		! command -v fd >/dev/null 2>&1 && pkgs_to_install+=(fd-find)
@@ -202,6 +204,7 @@ if [ -n "$PKG_MGR" ]; then
 		! command -v node >/dev/null 2>&1 && pkgs_to_install+=(nodejs npm)
 		! command -v python3 >/dev/null 2>&1 && pkgs_to_install+=(python3 python3-pip python3-neovim)
 		! command -v go >/dev/null 2>&1 && pkgs_to_install+=(golang)
+		! command -v lua >/dev/null 2>&1 && pkgs_to_install+=(lua luarocks)
 		! command -v ansible >/dev/null 2>&1 && pkgs_to_install+=(ansible)
 		;;
 	apk)
@@ -219,6 +222,7 @@ if [ -n "$PKG_MGR" ]; then
 		! command -v node >/dev/null 2>&1 && pkgs_to_install+=(nodejs npm)
 		! command -v python3 >/dev/null 2>&1 && pkgs_to_install+=(python3 py3-pip)
 		! command -v go >/dev/null 2>&1 && pkgs_to_install+=(go)
+		! command -v lua >/dev/null 2>&1 && pkgs_to_install+=(lua5.4 luarocks)
 		! command -v tree-sitter >/dev/null 2>&1 && pkgs_to_install+=(tree-sitter-cli)
 		! command -v docker >/dev/null 2>&1 && pkgs_to_install+=(docker docker-cli)
 		! command -v kubectl >/dev/null 2>&1 && pkgs_to_install+=(kubectl)
@@ -235,6 +239,7 @@ if [ -n "$PKG_MGR" ]; then
 		! command -v node >/dev/null 2>&1 && pkgs_to_install+=(node)
 		! command -v python3 >/dev/null 2>&1 && pkgs_to_install+=(python3)
 		! command -v go >/dev/null 2>&1 && pkgs_to_install+=(go)
+		! command -v lua >/dev/null 2>&1 && pkgs_to_install+=(lua luarocks)
 		! command -v tree-sitter >/dev/null 2>&1 && pkgs_to_install+=(tree-sitter)
 		! command -v terraform >/dev/null 2>&1 && pkgs_to_install+=(terraform)
 		! command -v ansible >/dev/null 2>&1 && pkgs_to_install+=(ansible)
@@ -313,9 +318,9 @@ fi
 pass "Neovim: $(nvim --version | head -n 1)"
 
 # ============================================================================
-# 0d. Cloud & DevOps Toolchain Binaries (Terraform, Kubectl, Helm)
+# 0d. Cloud & DevOps Toolchain Binaries (Terraform, Kubectl, Helm, Helm-ls, SuperHTML, StyLua)
 # ============================================================================
-section "Cloud & DevOps Toolchains"
+section "Cloud, DevOps & Language Toolchains"
 
 # 1. Terraform / OpenTofu
 if ! command -v terraform >/dev/null 2>&1 && ! command -v tofu >/dev/null 2>&1; then
@@ -325,6 +330,7 @@ if ! command -v terraform >/dev/null 2>&1 && ! command -v tofu >/dev/null 2>&1; 
 		echo "  -> Downloading Terraform v${TF_VER}..."
 		curl -fsSL "https://releases.hashicorp.com/terraform/${TF_VER}/terraform_${TF_VER}_linux_amd64.zip" -o /tmp/terraform.zip &&
 			unzip -q -o /tmp/terraform.zip -d "$HOME/.local/bin" &&
+			chmod +x "$HOME/.local/bin/terraform" 2>/dev/null &&
 			rm -f /tmp/terraform.zip &&
 			pass "Terraform installed -> $HOME/.local/bin/terraform" || warn "Terraform download failed."
 	fi
@@ -360,7 +366,51 @@ else
 	pass "helm ready ($(command -v helm))"
 fi
 
-# 4. Ansible
+# 4. Helm Language Server (helm-ls)
+if ! command -v helm_ls >/dev/null 2>&1 && ! command -v helm-ls >/dev/null 2>&1; then
+	if [ "$(uname -s)" = "Linux" ] && [ "$(uname -m)" = "x86_64" ] && command -v curl >/dev/null 2>&1; then
+		echo "  -> Downloading helm-ls..."
+		if curl -fsSL "https://github.com/mrjosh/helm-ls/releases/latest/download/helm-ls-linux-amd64" -o "$HOME/.local/bin/helm_ls" 2>/dev/null; then
+			chmod +x "$HOME/.local/bin/helm_ls"
+			ln -sf "$HOME/.local/bin/helm_ls" "$HOME/.local/bin/helm-ls"
+			pass "helm-ls ready -> $HOME/.local/bin/helm_ls"
+		fi
+	fi
+else
+	pass "helm-ls ready ($(command -v helm_ls 2>/dev/null || command -v helm-ls))"
+fi
+
+# 5. SuperHTML Language Server
+if ! command -v superhtml >/dev/null 2>&1; then
+	if [ "$(uname -s)" = "Linux" ] && [ "$(uname -m)" = "x86_64" ] && command -v curl >/dev/null 2>&1; then
+		echo "  -> Downloading superhtml..."
+		if curl -fsSL "https://github.com/kristoff-it/superhtml/releases/latest/download/x86_64-linux-superhtml.tar.gz" | tar -xz -C "$HOME/.local/bin" 2>/dev/null; then
+			chmod +x "$HOME/.local/bin/superhtml" 2>/dev/null || true
+			pass "superhtml ready -> $HOME/.local/bin/superhtml"
+		fi
+	fi
+else
+	pass "superhtml ready ($(command -v superhtml))"
+fi
+
+# 6. StyLua (Lua Formatter)
+if ! command -v stylua >/dev/null 2>&1; then
+	if command -v npm >/dev/null 2>&1; then
+		npm install -g @johnnymorganz/stylua-bin >/dev/null 2>&1 && pass "stylua installed via npm" || true
+	elif [ "$(uname -s)" = "Linux" ] && [ "$(uname -m)" = "x86_64" ] && command -v curl >/dev/null 2>&1; then
+		echo "  -> Downloading StyLua..."
+		if curl -fsSL "https://github.com/JohnnyMorganz/StyLua/releases/latest/download/stylua-linux-x86_64.zip" -o /tmp/stylua.zip 2>/dev/null; then
+			unzip -q -o /tmp/stylua.zip -d "$HOME/.local/bin" 2>/dev/null
+			chmod +x "$HOME/.local/bin/stylua" 2>/dev/null || true
+			rm -f /tmp/stylua.zip
+			pass "stylua ready -> $HOME/.local/bin/stylua"
+		fi
+	fi
+else
+	pass "stylua ready ($(command -v stylua))"
+fi
+
+# 7. Ansible
 if ! command -v ansible >/dev/null 2>&1; then
 	if command -v pip3 >/dev/null 2>&1 || command -v pip >/dev/null 2>&1; then
 		PIP="$(command -v pip3 2>/dev/null || command -v pip)"
@@ -372,7 +422,7 @@ else
 	pass "ansible ready ($(command -v ansible))"
 fi
 
-# 5. Docker
+# 8. Docker
 if command -v docker >/dev/null 2>&1; then
 	pass "docker ready ($(command -v docker))"
 else
@@ -451,36 +501,46 @@ fi
 # ============================================================================
 # 4. Go tools
 #    - yamlfmt -> conform.nvim YAML formatter
+#    - grpcurl -> gRPC client
+#    - osv-scanner -> dependency CVE scanner
+#    - shfmt -> shell formatter
 # ============================================================================
 section "Go tools"
 
 if ! command -v go >/dev/null 2>&1; then
-	warn "go not found -- skipping yamlfmt"
-	warn "Install Go >= 1.21 to enable yamlfmt"
+	warn "go not found -- skipping go tools (yamlfmt, grpcurl, osv-scanner, shfmt)"
+	warn "Install Go >= 1.21 to enable these tools"
 else
 	GOPATH_BIN="$(go env GOPATH 2>/dev/null || echo "$HOME/go")/bin"
-	if command -v yamlfmt >/dev/null 2>&1 || [ -x "$GOPATH_BIN/yamlfmt" ]; then
-		pass "yamlfmt already installed"
-	else
-		echo "  -> go install github.com/google/yamlfmt/cmd/yamlfmt@latest"
-		go install github.com/google/yamlfmt/cmd/yamlfmt@latest >/dev/null 2>&1 || true
-		pass "yamlfmt installed"
-		if ! echo "$PATH" | grep -q "$GOPATH_BIN"; then
-			export PATH="$GOPATH_BIN:$PATH"
-			warn "Add $GOPATH_BIN to your PATH (e.g. in ~/.bashrc or ~/.zshrc)"
+	go_install_tool() {
+		local pkg="$1"
+		local bin="$2"
+		if command -v "$bin" >/dev/null 2>&1 || [ -x "$GOPATH_BIN/$bin" ]; then
+			pass "$bin already installed"
+		else
+			echo "  -> go install $pkg"
+			go install "$pkg" >/dev/null 2>&1 || true
+			pass "$bin installed"
 		fi
-	fi
+	}
+
+	go_install_tool github.com/google/yamlfmt/cmd/yamlfmt@latest yamlfmt
+	go_install_tool github.com/fullstorydev/grpcurl/cmd/grpcurl@latest grpcurl
+	go_install_tool github.com/google/osv-scanner/cmd/osv-scanner@latest osv-scanner
+	go_install_tool mvdan.cc/sh/v3/cmd/shfmt@latest shfmt
 fi
 
 # ============================================================================
-# 5. Python provider
+# 5. Python provider & linters
 #    - pynvim -> vim.provider Python
+#    - cfn-lint -> AWS CloudFormation linter
+#    - yamllint -> YAML linter
 # ============================================================================
-section "Python provider (pynvim)"
+section "Python provider & linters"
 
 PY3="$(command -v python3 2>/dev/null || command -v python 2>/dev/null || true)"
 if [ -z "$PY3" ]; then
-	warn "python3 not found -- skipping pynvim"
+	warn "python3 not found -- skipping pynvim, cfn-lint, yamllint"
 else
 	if "$PY3" -c "import neovim" 2>/dev/null || "$PY3" -c "import pynvim" 2>/dev/null; then
 		pass "pynvim already importable"
@@ -491,6 +551,14 @@ else
 			warn "Could not install pynvim automatically."
 		fi
 	fi
+
+	for pytool in cfn-lint yamllint; do
+		if command -v "$pytool" >/dev/null 2>&1; then
+			pass "$pytool ready"
+		else
+			"$PY3" -m pip install --user --break-system-packages "$pytool" >/dev/null 2>&1 && pass "$pytool installed via pip" || true
+		fi
+	done
 fi
 
 # ============================================================================
@@ -498,11 +566,6 @@ fi
 #    - regex -> required by noice.nvim cmdline highlighting + snacks.picker
 # ============================================================================
 section "Tree-sitter parsers"
-
-MASON_BIN="${XDG_DATA_HOME:-$HOME/.local/share}/nvim/mason/bin"
-if [ -d "$MASON_BIN" ] && ! echo "$PATH" | grep -q "$MASON_BIN"; then
-	export PATH="$MASON_BIN:$PATH"
-fi
 
 rm -rf "${XDG_CACHE_HOME:-$HOME/.cache}/tree-sitter/lock" 2>/dev/null || true
 
@@ -556,39 +619,7 @@ else
 fi
 
 # ============================================================================
-# 8. gRPC tools
-# ============================================================================
-section "gRPC tools"
-if command -v grpcurl >/dev/null 2>&1; then
-	pass "grpcurl already installed"
-else
-	warn "'grpcurl' missing. Attempting installation..."
-	if command -v go >/dev/null 2>&1; then
-		go install github.com/fullstorydev/grpcurl/cmd/grpcurl@latest >/dev/null 2>&1 && pass "grpcurl installed via go" || true
-	elif [ -n "$PKG_MGR" ]; then
-		install_system_pkgs "$PKG_MGR" grpcurl || true
-	fi
-fi
-
-# ============================================================================
-# 9. Security & vulnerability scanners
-# ============================================================================
-section "Security scanners"
-if command -v osv-scanner >/dev/null 2>&1; then
-	pass "osv-scanner already installed"
-else
-	warn "'osv-scanner' missing. Attempting installation..."
-	if command -v go >/dev/null 2>&1; then
-		if go install github.com/google/osv-scanner/cmd/osv-scanner@latest >/dev/null 2>&1; then
-			pass "osv-scanner installed via 'go install'"
-		fi
-	elif [ -n "$PKG_MGR" ]; then
-		install_system_pkgs "$PKG_MGR" osv-scanner || true
-	fi
-fi
-
-# ============================================================================
-# 10. Scala lint & format tools (scalafmt / scalastyle)
+# 8. Scala lint & format tools (scalafmt / scalastyle)
 # ============================================================================
 section "Scala lint & format tools (scalafmt / scalastyle)"
 
@@ -609,7 +640,7 @@ else
 fi
 
 # ============================================================================
-# 11. async-profiler (JVM sampling profiler)
+# 9. async-profiler (JVM sampling profiler)
 # ============================================================================
 section "async-profiler (JVM profiler)"
 
