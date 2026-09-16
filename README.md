@@ -22,8 +22,6 @@
   <a href="#-file-structure">Structure</a>
   ·
   <a href="docs/README.md#6-intellij-idea-ultimate-parity-matrix">IntelliJ Parity</a>
-  ·
-  <a href="#-credits">Credits</a>
 </h4>
 
 <p align="center">
@@ -119,9 +117,9 @@ Run the one-line installer:
 curl -fsSL https://raw.githubusercontent.com/petrolal/TetraVim/main/install.sh | bash
 ```
 
-### Manual Installation
+<details><sumary>Manual Installation</summary>
 
-#### 1. Make a backup of your current Neovim state
+- 1. Make a backup of your current Neovim state
 
 ```shell
 mv ~/.config/nvim ~/.config/nvim.bak
@@ -130,7 +128,7 @@ mv ~/.local/state/nvim ~/.local/state/nvim.bak
 mv ~/.cache/nvim ~/.cache/nvim.bak
 ```
 
-#### 2. Clone and run bootstrap
+- 2. Clone and run bootstrap
 
 ```shell
 git clone https://github.com/petrolal/TetraVim.git ~/TetraVim
@@ -139,8 +137,9 @@ bash bootstrap.sh
 ```
 
 The interactive bootstrap verifies system dependencies, syncs Lazy.nvim plugins, provisions Mason tools, downloads JVM extension bundles, and validates installation health.
+</details>
 
-### Headless & CI / Container Provisioning
+<details><summary>Headless & CI / Container Provisioning</summary>
 
 For CI/CD pipelines, Docker containers, GitHub Codespaces, or Coder environments:
 
@@ -148,6 +147,8 @@ For CI/CD pipelines, Docker containers, GitHub Codespaces, or Coder environments
 git clone https://github.com/petrolal/TetraVim.git ~/.config/nvim
 nvim --headless -u ~/.config/nvim/init.lua -c "lua require('TetraVim.core.setup').run()" -c "qa!"
 ```
+
+</details>
 
 ## 📦 Basic Setup
 
