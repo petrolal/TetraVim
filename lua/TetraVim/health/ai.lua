@@ -11,7 +11,6 @@ function M.check()
   local cc = require("TetraVim.util.ai.codecompanion")
   local gemini = require("TetraVim.util.ai.gemini")
   local copilot = require("TetraVim.util.ai.copilot")
-  local cursor = require("TetraVim.util.ai.cursor")
 
   vim.health.info("Default provider: " .. config.default_provider() .. " (<leader>is to change)")
 
@@ -22,7 +21,7 @@ function M.check()
     if cc.api_key_present() then
       vim.health.ok("Claude: $ANTHROPIC_API_KEY set")
     else
-      vim.health.warn("Claude: $ANTHROPIC_API_KEY not set -- <leader>ic* keymaps will fail to authenticate")
+      vim.health.info("Claude: $ANTHROPIC_API_KEY not set -- will use Copilot adapter if authenticated")
     end
   end
 
@@ -50,25 +49,10 @@ function M.check()
     vim.health.info("copilot.lua: not yet loaded -- lazy-loads on InsertEnter or :Copilot")
   end
 
-  -- Cursor (avante.nvim)
-  if not config.is_enabled("cursor") then
-    vim.health.info("Cursor (avante.nvim): disabled in TetraVim.util.ai.config (<leader>is to enable)")
-  elseif cursor.available() then
-    vim.health.ok("avante.nvim: resolvable")
-  else
-    vim.health.info("avante.nvim: not yet loaded -- lazy-loads on first <leader>iv keymap")
-  end
-
   if vim.fn.executable("curl") == 1 then
-    vim.health.ok("curl: installed (codecompanion's anthropic adapter request backend)")
+    vim.health.ok("curl: installed (codecompanion request backend)")
   else
-    vim.health.warn("curl: NOT found on $PATH -- the anthropic adapter cannot make requests")
-  end
-
-  if vim.fn.executable("make") == 1 then
-    vim.health.ok("make: installed (avante.nvim's optional native build step)")
-  else
-    vim.health.info("make: NOT found on $PATH -- avante.nvim falls back to its pure-Lua path")
+    vim.health.warn("curl: NOT found on $PATH -- codecompanion cannot make requests")
   end
 end
 

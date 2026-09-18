@@ -316,7 +316,6 @@ end, { desc = "jq-Filter JSON Response/Buffer" })
 local ai_cc = require("TetraVim.util.ai.codecompanion")
 local ai_gemini = require("TetraVim.util.ai.gemini")
 local ai_copilot = require("TetraVim.util.ai.copilot")
-local ai_cursor = require("TetraVim.util.ai.cursor")
 local ai_config = require("TetraVim.util.ai.config")
 
 -- Claude group (<leader>ic) -- codecompanion.nvim, anthropic adapter.
@@ -350,13 +349,6 @@ map("n", "<leader>ipt", ai_copilot.toggle, { desc = "Toggle Suggestions" })
 map("n", "<leader>ips", ai_copilot.status, { desc = "Status" })
 map("n", "<leader>ipp", ai_copilot.panel, { desc = "Suggestions Panel" })
 map("n", "<leader>ipa", ai_copilot.auth, { desc = "Authenticate" })
-
--- Cursor group (<leader>iv) -- avante.nvim inline diff-apply editing.
-map("n", "<leader>ivv", ai_cursor.toggle, { desc = "Toggle Sidebar" })
-map("n", "<leader>iva", ai_cursor.ask, { desc = "Ask" })
-map("x", "<leader>ive", ai_cursor.edit, { desc = "Edit Selection" })
-map("n", "<leader>ivr", ai_cursor.refresh, { desc = "Refresh" })
-map("n", "<leader>ivm", ai_cursor.switch_provider, { desc = "Switch Provider" })
 
 -- Settings (<leader>is) -- enable/disable each tool and pick the default
 -- provider/model without editing Lua. Toggling `enabled` here needs a

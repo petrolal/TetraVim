@@ -31,6 +31,15 @@ return {
     cmd = { "CodeCompanion", "CodeCompanionChat", "CodeCompanionActions", "CodeCompanionCmd" },
     opts = {
       adapters = {
+        copilot = function()
+          return require("codecompanion.adapters").extend("copilot", {
+            schema = {
+              model = {
+                default = "claude-3.5-sonnet",
+              },
+            },
+          })
+        end,
         anthropic = function()
           return require("codecompanion.adapters").extend("anthropic", {
             schema = {
@@ -42,9 +51,9 @@ return {
         end,
       },
       strategies = {
-        chat = { adapter = "anthropic" },
-        inline = { adapter = "anthropic" },
-        cmd = { adapter = "anthropic" },
+        chat = { adapter = os.getenv("ANTHROPIC_API_KEY") and "anthropic" or "copilot" },
+        inline = { adapter = os.getenv("ANTHROPIC_API_KEY") and "anthropic" or "copilot" },
+        cmd = { adapter = os.getenv("ANTHROPIC_API_KEY") and "anthropic" or "copilot" },
       },
       display = {
         -- Persistent split, never a floating window, per this distro's

@@ -36,7 +36,6 @@ return {
         { "<leader>ic", group = "claude", icon = "󰧑 " },
         { "<leader>ig", group = "gemini", icon = "󰧑 " },
         { "<leader>ip", group = "copilot", icon = "󰚩 " },
-        { "<leader>iv", group = "cursor", icon = "󰅬 " },
         { "<leader>t", group = "test runner", icon = "󰙨 " },
         { "<leader>x", group = "quality/security", icon = "󰒃 " },
         { "<leader>xd", group = "diagnostics", icon = "󰒡 " },
@@ -248,13 +247,6 @@ return {
         { "<leader>ips", desc = "Status", icon = "󰚩 " },
         { "<leader>ipp", desc = "Suggestions Panel", icon = "󰚩 " },
         { "<leader>ipa", desc = "Authenticate", icon = "󰚩 " },
-
-        -- Cursor (<leader>iv) -- avante.nvim inline diff-apply editing
-        { "<leader>ivv", desc = "Toggle Sidebar", icon = "󰅬 " },
-        { "<leader>iva", desc = "Ask", icon = "󰅬 " },
-        { "<leader>ive", desc = "Edit Selection", icon = "󰅬 " },
-        { "<leader>ivr", desc = "Refresh", icon = "󰅬 " },
-        { "<leader>ivm", desc = "Switch Provider", icon = "󰅬 " },
 
         -- Settings
         { "<leader>is", desc = "Toggle Enabled Tools", icon = "󰧑 " },
