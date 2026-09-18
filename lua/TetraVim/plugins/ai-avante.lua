@@ -20,6 +20,7 @@ local config = require("TetraVim.util.ai.config")
 return {
   {
     "yetone/avante.nvim",
+    version = "v0.2.3",
     enabled = function()
       return config.is_enabled("cursor")
     end,
@@ -44,6 +45,7 @@ return {
       -- in core/keymaps.lua (TetraVim.util.ai.cursor), which this repo owns.
       behaviour = {
         auto_set_keymaps = false,
+        enable_token_counting = true,
       },
     },
   },
