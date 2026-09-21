@@ -33,14 +33,13 @@ end
 -- ---------------------------------------------------------------------------
 
 --- The directory a "new file" action should target: the browsed directory in
---- a mini.files buffer, else the current file's parent, else the working dir.
+--- an oil buffer, else the current file's parent, else the working dir.
 ---@return string
 function M.target_dir()
-  if vim.bo.filetype == "minifiles" then
-    local ok, mini_files = pcall(require, "mini.files")
+  if vim.bo.filetype == "oil" then
+    local ok, oil = pcall(require, "oil")
     if ok then
-      local entry = mini_files.get_fs_entry()
-      local dir = entry and (entry.fs_type == "directory" and entry.path or vim.fs.dirname(entry.path))
+      local dir = oil.get_current_dir()
       if dir and dir ~= "" then
         return vim.fs.normalize((dir:gsub("/$", "")))
       end
@@ -102,12 +101,12 @@ end
 
 --- Best-effort "primary language" for ordering the picker: the current
 --- buffer's filetype, or the dominant source language of `root` when the
---- current buffer has none (dir / empty / mini.files).
+--- current buffer has none (dir / empty / oil).
 ---@param root string
 ---@return string|nil
 local function context_language(root)
   local ft = vim.bo.filetype
-  if ft ~= nil and ft ~= "" and ft ~= "minifiles" and ft ~= "snacks_picker_list" then
+  if ft ~= nil and ft ~= "" and ft ~= "oil" and ft ~= "snacks_picker_list" then
     return ft
   end
   for _, probe in ipairs({

@@ -135,7 +135,7 @@ return {
       end
 
       -- init() only runs the discovery scan once, against the cwd Neovim
-      -- happened to start in -- switching projects (`:cd`, mini.files, a
+      -- happened to start in -- switching projects (`:cd`, oil.nvim, a
       -- session load, etc.) never re-scans, so vim.g.dbs silently keeps
       -- pointing at the FIRST project's datasources forever. Re-run
       -- discovery on every DirChanged so :DBUIToggle/:DBUIFindBuffer see

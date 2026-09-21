@@ -34,48 +34,6 @@ vim.api.nvim_create_autocmd("VimEnter", {
   end,
 })
 
--- Auto-launch the pinned Kiro-style agentic layout (right AI agent sidebar,
--- see TetraVim.util.layout.open_default) once per session, so plain `nvim` /
--- `nvim .` land directly with the agent panel up instead of requiring the
--- manual <leader>wa toggle. The bottom terminal drawer stays closed by
--- default (<leader>wt opens it on demand) -- no reason to start every
--- session with an idle shell pane. Skipped for
--- the sessions that shouldn't ever grow this chrome: piped stdin (flagged via
--- StdinReadPre, which always fires before VimEnter), diff mode (`nvim -d`),
--- git commit/rebase message buffers, and man pages -- none of those want a
--- permanent split layout wrapped around them.
---
--- Deferred to vim.schedule (nested + scheduled) so it runs after every other
--- VimEnter handler above (open_readme, build_sync) has had a chance to pick
--- the buffer/filetype for this session -- checking `&filetype`/`&diff`
--- synchronously at VimEnter would race a git/man ftplugin that hasn't set
--- its filetype yet.
-vim.api.nvim_create_autocmd("StdinReadPre", {
-  group = augroup("agentic_layout_stdin_flag"),
-  once = true,
-  callback = function()
-    vim.g.tetravim_stdin = true
-  end,
-})
-
-vim.api.nvim_create_autocmd("VimEnter", {
-  group = augroup("agentic_layout"),
-  once = true,
-  nested = true,
-  callback = function()
-    vim.schedule(function()
-      if vim.g.tetravim_stdin or vim.g.tetravim_headless or vim.o.diff then
-        return
-      end
-      local excluded_filetypes = { gitcommit = true, gitrebase = true, man = true }
-      if excluded_filetypes[vim.bo.filetype] then
-        return
-      end
-      require("TetraVim.util.layout").open_default()
-    end)
-  end,
-})
-
 -- Auto-open README.md once when Neovim is started on a project directory
 -- (e.g. `nvim .`), so the project's landing doc is visible instead of a
 -- blank "[No Name]" buffer. If there's no README, that blank buffer is left
@@ -441,20 +399,5 @@ vim.api.nvim_create_autocmd("BufReadCmd", {
     else
       unzip_fallback()
     end
-  end,
-})
-
--- (Re)register TetraVim.util.ai.hooks' watchers whenever the working
--- directory changes -- `.hooks/*.md` is per-project, same as `.context/`
--- and `skills/`, so switching projects must re-scan rather than keep firing
--- the previous project's hooks. Deferred with pcall: hooks.lua is harmless
--- to load early, but this keeps the same defensive posture as every other
--- optional-plugin-backed feature in this distro.
-vim.api.nvim_create_autocmd({ "VimEnter", "DirChanged" }, {
-  group = augroup("agent_hooks"),
-  callback = function()
-    pcall(function()
-      require("TetraVim.util.ai.hooks").setup()
-    end)
   end,
 })

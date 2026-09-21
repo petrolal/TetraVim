@@ -24,19 +24,7 @@ return {
     cmd = "Copilot",
     event = "InsertEnter",
     opts = {
-      suggestion = {
-        enabled = true,
-        auto_trigger = true,
-        debounce = 75,
-        keymap = {
-          accept = "<M-l>",
-          accept_word = "<M-Right>",
-          accept_line = "<M-Down>",
-          next = "<M-]>",
-          prev = "<M-[>",
-          dismiss = "<C-]>",
-        },
-      },
+      suggestion = { auto_trigger = true },
       panel = { enabled = true },
     },
   },

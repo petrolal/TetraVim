@@ -23,6 +23,7 @@ local DEFAULTS = {
     claude = true,
     gemini = true,
     copilot = true,
+    cursor = true,
   },
   default_provider = "claude",
   models = {
@@ -30,7 +31,7 @@ local DEFAULTS = {
   },
 }
 
-local TOOL_NAMES = { "claude", "gemini", "copilot" }
+local TOOL_NAMES = { "claude", "gemini", "copilot", "cursor" }
 
 local cache = nil
 

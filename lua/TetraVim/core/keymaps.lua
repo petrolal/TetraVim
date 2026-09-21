@@ -11,11 +11,8 @@ map("n", "<leader>wl", "<C-w>l", { desc = "Focus right window" })
 
 -- File explorer shortcut required by the smoke test
 vim.keymap.set("n", "<leader>e", function()
-  require("TetraVim.util.mini_files").open()
-end, { desc = "Open file explorer (mini.files)" })
-vim.keymap.set("n", "<leader>E", function()
-  require("TetraVim.util.mini_files").open_specs()
-end, { desc = "Open .specs/ (mini.files)" })
+  require("oil").open()
+end, { desc = "Open file explorer (oil.nvim)" })
 
 -- Visual Selection & Line Movement Chords (Story 9.2)
 map("v", "J", ":m '>+1<cr>gv=gv", { desc = "Move Down" })
@@ -209,13 +206,6 @@ map("n", "<leader>ws", "<cmd>split<cr>", { desc = "Split Window Horizontally" })
 map("n", "<leader>wv", "<cmd>vsplit<cr>", { desc = "Split Window Vertically" })
 map("n", "<leader>wd", "<cmd>close<cr>", { desc = "Close Window" })
 
--- Kiro-style fixed IDE layout (util/layout.lua) -- independent toggles for
--- the pinned left explorer / bottom terminal drawer / right AI agent panel.
-local layout = require("TetraVim.util.layout")
-map("n", "<leader>we", layout.toggle_explorer, { desc = "Toggle Left Explorer" })
-map("n", "<leader>wt", layout.toggle_terminal_drawer, { desc = "Toggle Bottom Terminal" })
-map("n", "<leader>wa", layout.toggle_agent_panel, { desc = "Toggle Right Agent Panel" })
-
 -- Session & Quit Keymaps (Story 10.1 & Story 29.1)
 map("n", "<leader>qq", "<cmd>confirm qa<cr>", { desc = "Quit Neovim (Confirm)" })
 map("n", "<leader>qQ", "<cmd>qa!<cr>", { desc = "Force Quit Neovim (No Save)" })
@@ -326,6 +316,7 @@ end, { desc = "jq-Filter JSON Response/Buffer" })
 local ai_cc = require("TetraVim.util.ai.codecompanion")
 local ai_gemini = require("TetraVim.util.ai.gemini")
 local ai_copilot = require("TetraVim.util.ai.copilot")
+local ai_cursor = require("TetraVim.util.ai.cursor")
 local ai_config = require("TetraVim.util.ai.config")
 
 -- Claude group (<leader>ic) -- codecompanion.nvim, anthropic adapter.
@@ -360,31 +351,12 @@ map("n", "<leader>ips", ai_copilot.status, { desc = "Status" })
 map("n", "<leader>ipp", ai_copilot.panel, { desc = "Suggestions Panel" })
 map("n", "<leader>ipa", ai_copilot.auth, { desc = "Authenticate" })
 
--- Spec-Driven Development group (<leader>ik) -- Kiro-style contextual
--- knowledge base + spec-writer/task-planner/task-executor skills. Thin
--- dispatchers only; the state machine (context indexing, skill loading, the
--- deterministic approval gate) lives in TetraVim.util.ai.context/.skills/
--- .spec.gate, mirroring every other <leader>i group's split.
-local ai_context = require("TetraVim.util.ai.context")
-local ai_skills = require("TetraVim.util.ai.skills")
-local ai_gate = require("TetraVim.util.ai.spec.gate")
-local ai_tasks = require("TetraVim.util.ai.spec.tasks")
-local ai_hooks = require("TetraVim.util.ai.hooks")
-
-map("n", "<leader>ikx", ai_context.seed, { desc = "Seed .context/ knowledge base" })
-map("n", "<leader>iky", ai_skills.eject, { desc = "Copy skill templates into ./skills/ for editing" })
-map("n", "<leader>iks", "<cmd>CodeCompanion /spec-writer<cr>", { desc = "Run spec-writer (requirements -> design)" })
-map("n", "<leader>ika", ai_gate.toggle_approval, { desc = "Toggle approval status of current spec file" })
-map("n", "<leader>ikp", function()
-  if not ai_gate.require_approved(".specs/design.md", "task-planner") then
-    return
-  end
-  vim.cmd("CodeCompanion /task-planner")
-end, { desc = "Run task-planner (requires design.md approved)" })
-map("n", "<leader>ikn", ai_tasks.run_next, { desc = "Run next pending task (task-executor)" })
-map("n", "<leader>ikv", ai_tasks.verify, { desc = "Verify next task (real overseer test run)" })
-map("n", "<leader>ikd", ai_tasks.mark_done, { desc = "Mark next pending task done (after reviewing PASS)" })
-map("n", "<leader>ikh", ai_hooks.picker, { desc = "List/toggle agent hooks (.hooks/*.md)" })
+-- Cursor group (<leader>iv) -- avante.nvim inline diff-apply editing.
+map("n", "<leader>ivv", ai_cursor.toggle, { desc = "Toggle Sidebar" })
+map("n", "<leader>iva", ai_cursor.ask, { desc = "Ask" })
+map("x", "<leader>ive", ai_cursor.edit, { desc = "Edit Selection" })
+map("n", "<leader>ivr", ai_cursor.refresh, { desc = "Refresh" })
+map("n", "<leader>ivm", ai_cursor.switch_provider, { desc = "Switch Provider" })
 
 -- Settings (<leader>is) -- enable/disable each tool and pick the default
 -- provider/model without editing Lua. Toggling `enabled` here needs a

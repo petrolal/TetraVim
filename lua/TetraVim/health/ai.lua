@@ -11,6 +11,7 @@ function M.check()
   local cc = require("TetraVim.util.ai.codecompanion")
   local gemini = require("TetraVim.util.ai.gemini")
   local copilot = require("TetraVim.util.ai.copilot")
+  local cursor = require("TetraVim.util.ai.cursor")
 
   vim.health.info("Default provider: " .. config.default_provider() .. " (<leader>is to change)")
 
@@ -21,7 +22,7 @@ function M.check()
     if cc.api_key_present() then
       vim.health.ok("Claude: $ANTHROPIC_API_KEY set")
     else
-      vim.health.info("Claude: $ANTHROPIC_API_KEY not set -- will use Copilot adapter if authenticated")
+      vim.health.warn("Claude: $ANTHROPIC_API_KEY not set -- <leader>ic* keymaps will fail to authenticate")
     end
   end
 
@@ -49,31 +50,25 @@ function M.check()
     vim.health.info("copilot.lua: not yet loaded -- lazy-loads on InsertEnter or :Copilot")
   end
 
+  -- Cursor (avante.nvim)
+  if not config.is_enabled("cursor") then
+    vim.health.info("Cursor (avante.nvim): disabled in TetraVim.util.ai.config (<leader>is to enable)")
+  elseif cursor.available() then
+    vim.health.ok("avante.nvim: resolvable")
+  else
+    vim.health.info("avante.nvim: not yet loaded -- lazy-loads on first <leader>iv keymap")
+  end
+
   if vim.fn.executable("curl") == 1 then
-    vim.health.ok("curl: installed (codecompanion request backend)")
+    vim.health.ok("curl: installed (codecompanion's anthropic adapter request backend)")
   else
-    vim.health.warn("curl: NOT found on $PATH -- codecompanion cannot make requests")
+    vim.health.warn("curl: NOT found on $PATH -- the anthropic adapter cannot make requests")
   end
 
-  -- MCP tool-calling (ai-mcphub.lua) -- gives task-executor and other chats
-  -- real filesystem/shell/etc tool access instead of text-only output.
-  if not config.is_enabled("claude") then
-    vim.health.info("mcphub.nvim: disabled alongside Claude (<leader>is to enable)")
-  elseif vim.fn.executable("mcp-hub") == 1 then
-    vim.health.ok("mcp-hub: installed -- MCP tool-calling available to codecompanion chats")
+  if vim.fn.executable("make") == 1 then
+    vim.health.ok("make: installed (avante.nvim's optional native build step)")
   else
-    vim.health.info("mcp-hub: NOT found on $PATH -- run :Lazy build mcphub.nvim (npm i -g mcp-hub)")
-  end
-
-  -- Agent hooks (util/ai/hooks.lua) -- event-triggered .hooks/*.md prompts.
-  local hooks = require("TetraVim.util.ai.hooks").load()
-  if #hooks == 0 then
-    vim.health.info("Agent hooks: none in .hooks/ (<leader>ikh to seed an example)")
-  else
-    local enabled = vim.tbl_count(vim.tbl_filter(function(h)
-      return h.enabled
-    end, hooks))
-    vim.health.ok(("Agent hooks: %d loaded, %d enabled"):format(#hooks, enabled))
+    vim.health.info("make: NOT found on $PATH -- avante.nvim falls back to its pure-Lua path")
   end
 end
 

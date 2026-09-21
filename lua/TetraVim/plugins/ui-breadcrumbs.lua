@@ -15,7 +15,7 @@ return {
     opts = {
       bar = {
         -- Winbar only in real file windows -- keep it off the dashboard,
-        -- mini.files, DAP UI, pickers, help and quickfix.
+        -- oil, DAP UI, pickers, help and quickfix.
         enable = function(buf, win, _)
           if not buf or not win or not vim.api.nvim_buf_is_valid(buf) or not vim.api.nvim_win_is_valid(win) then
             return false
@@ -28,7 +28,7 @@ return {
             return false
           end
           local excluded = {
-            minifiles = true,
+            oil = true,
             ["snacks_dashboard"] = true,
             ["snacks_picker_list"] = true,
             ["snacks_layout_box"] = true,
