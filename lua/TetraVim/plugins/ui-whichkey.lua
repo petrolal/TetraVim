@@ -101,7 +101,8 @@ return {
 
       -- Root Shortcuts
       vim.list_extend(opts.spec, {
-        { "<leader>e", desc = "File Explorer (oil)", icon = "󰙅 " },
+        { "<leader>e", desc = "File Explorer (mini.files)", icon = "󰙅 " },
+        { "<leader>E", desc = "Open .specs/ (mini.files)", icon = "󰙅 " },
         { "<leader>z", desc = "Toggle Zen Mode", icon = "󰔡 " },
         { "<leader>.", desc = "Toggle Scratch Buffer", icon = "󰝒 " },
         { "<leader>n", desc = "New File from Template", icon = "󰝒 " },

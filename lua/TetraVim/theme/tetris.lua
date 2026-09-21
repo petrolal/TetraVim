@@ -585,23 +585,15 @@ function M.highlights()
     WhichKeyBorder = { fg = p.gray, bg = p.surface },
     WhichKeyTitle = { fg = p.cyan_pure, bg = p.surface, bold = true },
 
-    -- oil.nvim
-    OilDir = { fg = p.cyan },
-    OilDirIcon = { fg = p.cyan },
-    OilLink = { fg = p.purple, underline = true },
-    OilLinkTarget = { fg = p.gray },
-    OilCopy = { fg = p.green, bold = true },
-    OilMove = { fg = diag_info, bold = true },
-    OilChange = { fg = p.yellow, bold = true },
-    OilCreate = { fg = p.green, bold = true },
-    OilDelete = { fg = p.red, bold = true },
-    OilPermissionNone = { fg = p.gray },
-    OilPermissionRead = { fg = p.yellow },
-    OilPermissionWrite = { fg = p.red },
-    OilPermissionExecute = { fg = p.green },
-    OilTypeDir = { fg = p.cyan },
-    OilTypeFile = { fg = p.fg },
-    OilTypeLink = { fg = p.purple },
+    -- mini.files
+    MiniFilesDirectory = { fg = p.cyan },
+    MiniFilesFile = { fg = p.fg },
+    MiniFilesNormal = { fg = p.fg, bg = p.surface },
+    MiniFilesBorder = { fg = p.gray, bg = p.surface },
+    MiniFilesBorderModified = { fg = p.yellow, bg = p.surface },
+    MiniFilesTitle = { fg = p.cyan_pure, bg = p.surface, bold = true },
+    MiniFilesTitleFocused = { fg = p.cyan, bg = p.surface, bold = true },
+    MiniFilesCursorLine = { bg = p.surface_hi },
 
     -- trouble.nvim
     TroubleNormal = { fg = p.fg, bg = p.surface },

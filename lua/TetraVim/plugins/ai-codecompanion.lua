@@ -65,10 +65,25 @@ return {
         interactions = {
           chat = {
             adapter = os.getenv("ANTHROPIC_API_KEY") and "anthropic" or "copilot",
-            -- `#context` -- Kiro-style contextual project knowledge base
+            -- `/context` -- Kiro-style contextual project knowledge base
             -- (TetraVim.util.ai.context): architecture/conventions/domain/
             -- tech-stack, resolved fresh from .context/*.md on every use.
-            variables = require("TetraVim.util.ai.context").codecompanion_variable(),
+            -- A slash_command, not a `variables` entry -- this codecompanion
+            -- version has no `variables` mechanism.
+            slash_commands = require("TetraVim.util.ai.context").codecompanion_slash_command(),
+            -- Built-in zero-config agentic tools (no MCP server needed):
+            -- create/delete/read/search files, edit-with-review, run shell
+            -- commands, pull LSP diagnostics, and diff against git -- see
+            -- codecompanion's own `agent` tool group. Each tool keeps its own
+            -- approval/confirmation gate (run_command/delete_file require
+            -- approval before running; create_file/insert_edit_into_file
+            -- require confirmation after, via the accept/reject diff keymaps
+            -- below) -- nothing here bypasses the human-in-the-loop review
+            -- this distro standardizes on. MCP (ai-mcphub.lua) layers
+            -- additional external tools on top when the user configures
+            -- servers; it is not required for baseline file/shell/diagnostic
+            -- access anymore.
+            tools = { opts = { default_tools = { "agent" } } },
           },
           inline = { adapter = os.getenv("ANTHROPIC_API_KEY") and "anthropic" or "copilot" },
           cmd = { adapter = os.getenv("ANTHROPIC_API_KEY") and "anthropic" or "copilot" },
@@ -101,7 +116,15 @@ return {
             callback = "mcphub.extensions.codecompanion",
             opts = {
               show_result_in_chat = true,
-              make_vars = true,
+              -- `make_vars = false`: mcphub's variables.lua registers MCP
+              -- resources into `interactions.chat.variables`, but this
+              -- installed codecompanion version has no `variables`
+              -- mechanism (see the /context slash_command comment above) --
+              -- that table is always nil, so `make_vars = true` crashes
+              -- (`bad argument #1 to 'pairs'`) inside mcphub's `register()`
+              -- on every MCP server (dis)connect. MCP resources stay
+              -- reachable via make_slash_commands below instead.
+              make_vars = false,
               make_slash_commands = true,
             },
           },

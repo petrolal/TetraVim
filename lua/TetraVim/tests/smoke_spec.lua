@@ -50,11 +50,11 @@ describe("Startup smoke (validate.sh stage 5)", function()
 end)
 
 describe("Startup smoke (validate.sh stage 5.1)", function()
-  it("verifies File Explorer (oil.nvim) and keymaps", function()
+  it("verifies File Explorer (mini.files) and keymaps", function()
     local root = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h:h:h:h")
     local code =
-      "assert(pcall(require, 'oil'), 'oil module not found'); local maps = vim.api.nvim_get_keymap('n'); local found = false; for _, m in ipairs(maps) do if m.lhs == '<Space>e' or m.lhs == ' e' or m.lhs == '<leader>e' then found = true; break end end; assert(found, '<leader>e keymap not found')"
+      "assert(pcall(require, 'TetraVim.util.mini_files'), 'TetraVim.util.mini_files module not found'); local maps = vim.api.nvim_get_keymap('n'); local found = false; for _, m in ipairs(maps) do if m.lhs == '<Space>e' or m.lhs == ' e' or m.lhs == '<leader>e' then found = true; break end end; assert(found, '<leader>e keymap not found')"
     local out = vim.fn.system({ "nvim", "--headless", "-u", root .. "/init.lua", "-c", "lua " .. code, "-c", "qa!" })
-    assert.equals(0, vim.v.shell_error, "Failed to load oil.nvim and verify keymaps in child process: " .. out)
+    assert.equals(0, vim.v.shell_error, "Failed to load mini.files and verify keymaps in child process: " .. out)
   end)
 end)

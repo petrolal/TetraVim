@@ -185,12 +185,12 @@ What Kiro (AWS's spec-driven agentic IDE) supports out of the box, and how Tetra
 | Kiro Feature | TetraVim Coverage | Spec File | Keys |
 | --- | :---: | --- | --- |
 | Specs (`requirements.md` / `design.md` / `tasks.md`) | Full | `.specs/*.md`, `util/ai/skills/defaults/{spec-writer,task-planner}.md` | `<leader>iks`, `<leader>ikp` |
-| Steering docs (persistent project context, always injected) | Full | `util/ai/context.lua`, `.context/*.md` | `<leader>ikx`, `#context` |
+| Steering docs (persistent project context, always injected) | Full | `util/ai/context.lua`, `.context/*.md` | `<leader>ikx`, `/context` |
 | Spec-file human approval gate | Full | `util/ai/spec/gate.lua` -- deterministic `status: approved` frontmatter check, never LLM-set | `<leader>ika` |
 | Task execution loop (plan → run one task → verify → mark done) | Full | `util/ai/spec/tasks.lua` | `<leader>ikn`, `<leader>ikv`, `<leader>ikd` |
 | Task verification against real command output (not just model self-report) | Full -- exceeds Kiro | `util/ai/spec/tasks.lua` `verify()` → `overseer.nvim` test run | `<leader>ikv` |
 | Agent Hooks (event-triggered automated prompts) | Full | `util/ai/hooks.lua`, `.hooks/*.md` | `<leader>ikh` |
-| Agentic tool use (filesystem/shell edits from chat) | Full | `plugins/ai-mcphub.lua` (`mcphub.nvim`), tool calls always surfaced for review, `auto_approve = false` | `:MCPHub` |
+| Agentic tool use (filesystem/shell edits from chat) | Full | Built-in zero-config: codecompanion's `agent` tool group (`create_file`/`delete_file`/`read_file`/`file_search`/`grep_search`/`insert_edit_into_file`/`run_command`/`get_diagnostics`/`get_changed_files`), each tool keeping its own approval/confirmation gate. `plugins/ai-mcphub.lua` (`mcphub.nvim`) layers additional external MCP servers on top when configured, `auto_approve = false` | tools auto-available in every chat; `:MCPHub` for extra servers |
 | Externalized, editable agent prompts (skills) | Full | `util/ai/skills.lua`, bundled defaults + per-project `skills/*.md` override | `<leader>iky` |
 | Agentic chat panel | Full | `plugins/ai-codecompanion.lua` (`codecompanion.nvim`) | `<leader>icc` |
 | Chat/inline-edit applies code changes directly to the buffer as a reviewable diff, with accept/reject (Kiro/Cursor Composer-style) | Full | `codecompanion.nvim` inline diff engine, remapped in `plugins/ai-codecompanion.lua` `interactions.shared.keymaps` | `<leader>icv` view diff, `<leader>icy` accept, `<leader>icn` reject, `<leader>icA` accept all, `<leader>icx` cancel |
@@ -200,6 +200,40 @@ What Kiro (AWS's spec-driven agentic IDE) supports out of the box, and how Tetra
 | Multimodal spec generation (image/screenshot → spec) | Not supported | -- codecompanion's chat is text-only in this distro's configuration | -- |
 
 Verify with `:checkhealth TetraVim` → *AI Assistants* section (reports loaded/enabled skill and hook counts).
+
+### Kiro-style fixed layout
+
+Kiro's fixed 4-pane IDE shell (left file/spec tree, center editor/diffs, right
+AI agent sidebar, bottom terminal drawer) is replicated with tools this
+distro already ships, orchestrated by `util/layout.lua`, rather than adding
+`neo-tree.nvim` / `edgy.nvim` / `toggleterm.nvim` / `avante.nvim`:
+
+| Pane | Backing plugin | Toggle |
+| --- | --- | --- |
+| Left file/spec tree (~32 cols, pinned) | `snacks.nvim` (`Snacks.explorer()`) | `<leader>we` |
+| Right AI agent sidebar (~42 cols, pinned) | `codecompanion.nvim` chat | `<leader>wa` (alias of `<leader>icc`) |
+| Bottom terminal drawer (~14 lines) | `snacks.nvim` (`Snacks.terminal()`) | `<leader>wt` |
+
+Each toggle pins its window with `winfixwidth`/`winfixheight`, so it holds
+its size across `VimResized` (`core/autocmds.lua`'s `resize_splits` group
+already skips fixed-size windows when it re-equalizes splits) and doesn't
+get squeezed by new splits opened in the center pane. `splitright`/
+`splitbelow` (`core/options.lua`) keep ad-hoc splits, quickfix, and help
+windows landing in the center pane rather than the top-left corner.
+
+**Right agent sidebar launches open by default.** `core/autocmds.lua`'s
+`agentic_layout` VimEnter group calls `layout.open_default()` once per
+session, so plain `nvim` / `nvim .` land directly with the agent chat pinned
+open -- no manual `<leader>wa` needed -- with focus left in the center
+editor window (`layout.center_win()`), never the chat. The bottom terminal
+drawer stays closed until `<leader>wt` opens it -- no idle shell pane at
+startup. It's skipped for sessions that shouldn't carry this chrome: piped
+stdin, `nvim -d` diff mode, `gitcommit`/`gitrebase` message buffers, and man
+pages. `util/mini_files.lua`'s explorer (`<leader>e`/`<leader>E`) uses the
+same `layout.center_win()` (wired via mini.files' `MiniFilesExplorerOpen` +
+`set_target_window()`) so selecting a file always opens it in the center
+pane, never overwriting the pinned agent/terminal panes even if one of them
+happened to have focus when the explorer was opened.
 
 ---
 

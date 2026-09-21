@@ -52,6 +52,13 @@ end
 -- a dedicated CursorLine surface colour for it.
 vim.opt.cursorline = true
 
+-- New splits open to the right/below the *current* window rather than the
+-- top-left. Keeps ad-hoc splits, quickfix, and help windows landing inside
+-- the center pane instead of carving into the pinned Kiro-style sidebars
+-- (see util/layout.lua) when triggered from there.
+vim.opt.splitright = true
+vim.opt.splitbelow = true
+
 -- Keep a little breathing room around the cursor while scrolling.
 vim.opt.scrolloff = 6
 vim.opt.sidescrolloff = 8

@@ -35,17 +35,21 @@ function M.build()
   return table.concat(parts, "\n\n---\n\n")
 end
 
---- codecompanion `variables` entry -- resolved fresh on every `#context`
---- reference in a chat message, so edits to .context/*.md take effect
---- without a Neovim restart.
+--- codecompanion `slash_commands` entry (installed codecompanion version has
+--- no `variables` mechanism -- that concept was renamed/folded into
+--- slash_commands with a `callback(chat)` contract) -- resolved fresh on
+--- every `/context` invocation in a chat, so edits to .context/*.md take
+--- effect without a Neovim restart.
 ---@return table
-function M.codecompanion_variable()
+function M.codecompanion_slash_command()
   return {
     ["context"] = {
-      callback = function()
-        return M.build() or "(no .context/ files yet in this project -- run <leader>ikx to seed one)"
-      end,
       description = "Project context: architecture, conventions, domain, tech stack",
+      callback = function(chat)
+        local content = M.build() or "(no .context/ files yet in this project -- run <leader>ikx to seed one)"
+        chat:add_message({ role = "user", content = content }, { visible = true })
+      end,
+      opts = { contains_code = false },
     },
   }
 end

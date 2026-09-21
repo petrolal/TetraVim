@@ -11,8 +11,11 @@ map("n", "<leader>wl", "<C-w>l", { desc = "Focus right window" })
 
 -- File explorer shortcut required by the smoke test
 vim.keymap.set("n", "<leader>e", function()
-  require("oil").open()
-end, { desc = "Open file explorer (oil.nvim)" })
+  require("TetraVim.util.mini_files").open()
+end, { desc = "Open file explorer (mini.files)" })
+vim.keymap.set("n", "<leader>E", function()
+  require("TetraVim.util.mini_files").open_specs()
+end, { desc = "Open .specs/ (mini.files)" })
 
 -- Visual Selection & Line Movement Chords (Story 9.2)
 map("v", "J", ":m '>+1<cr>gv=gv", { desc = "Move Down" })
@@ -205,6 +208,13 @@ map("n", "<leader>lc", "<cmd>checkhealth<cr>", { desc = "Checkhealth System" })
 map("n", "<leader>ws", "<cmd>split<cr>", { desc = "Split Window Horizontally" })
 map("n", "<leader>wv", "<cmd>vsplit<cr>", { desc = "Split Window Vertically" })
 map("n", "<leader>wd", "<cmd>close<cr>", { desc = "Close Window" })
+
+-- Kiro-style fixed IDE layout (util/layout.lua) -- independent toggles for
+-- the pinned left explorer / bottom terminal drawer / right AI agent panel.
+local layout = require("TetraVim.util.layout")
+map("n", "<leader>we", layout.toggle_explorer, { desc = "Toggle Left Explorer" })
+map("n", "<leader>wt", layout.toggle_terminal_drawer, { desc = "Toggle Bottom Terminal" })
+map("n", "<leader>wa", layout.toggle_agent_panel, { desc = "Toggle Right Agent Panel" })
 
 -- Session & Quit Keymaps (Story 10.1 & Story 29.1)
 map("n", "<leader>qq", "<cmd>confirm qa<cr>", { desc = "Quit Neovim (Confirm)" })

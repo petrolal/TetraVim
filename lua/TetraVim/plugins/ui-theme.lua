@@ -114,7 +114,7 @@ local function get_bufferline_opts()
       separator_style = "slant",
       offsets = {
         {
-          filetype = "oil",
+          filetype = "minifiles",
           text = "  Explorer",
           highlight = "Directory",
           text_align = "left",

@@ -1,7 +1,7 @@
 ---
 name: task-planner
 description: Converts an approved .specs/design.md into an atomic, ordered checklist in .specs/tasks.md.
-inputs: .specs/requirements.md (status: approved), .specs/design.md (status: approved), #context
+inputs: .specs/requirements.md (status: approved), .specs/design.md (status: approved), /context
 outputs: .specs/tasks.md only
 requires_approval_of: .specs/design.md
 ---

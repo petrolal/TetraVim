@@ -54,12 +54,12 @@ describe("TetraVim.util.jvm.build", function()
     vim.fn.delete(tmp, "rf")
   end)
 
-  it("detects project from oil:// URI buffer", function()
+  it("detects project from minifiles:// URI buffer", function()
     local tmp = vim.fn.tempname()
     vim.fn.mkdir(tmp, "p")
     vim.fn.writefile({ "// gradle" }, tmp .. "/build.gradle")
 
-    local tool, root = build.detect("oil://" .. tmp .. "/")
+    local tool, root = build.detect("minifiles://5" .. tmp .. "/")
     assert.are.same("gradle", tool)
     assert.are.same(tmp, root)
 

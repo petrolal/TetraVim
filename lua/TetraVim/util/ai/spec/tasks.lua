@@ -1,7 +1,7 @@
 -- TetraVim Task-Execution State Machine -- reads .specs/tasks.md, finds the
 -- next pending `- [ ]` item, and opens a codecompanion chat pre-loaded with
 -- the task-executor skill plus that one task's context (design.md +
--- #context, inlined directly rather than left as `#context` text since this
+-- /context, inlined directly rather than left as `/context` text since this
 -- bypasses codecompanion's buffer-typed variable-resolution path). Marking a
 -- task done is a separate, deterministic text edit -- never something the
 -- LLM does itself, mirroring TetraVim.util.ai.spec.gate's approval toggle.
@@ -26,7 +26,7 @@ function M.next_task()
 end
 
 --- Open a codecompanion chat seeded with the task-executor skill as the
---- system prompt and the next pending task (plus design.md/#context) as the
+--- system prompt and the next pending task (plus design.md//context) as the
 --- first user message. Read-only with respect to tasks.md -- marking the
 --- item done is a separate action (M.mark_done).
 function M.run_next()
