@@ -359,6 +359,7 @@ local ai_context = require("TetraVim.util.ai.context")
 local ai_skills = require("TetraVim.util.ai.skills")
 local ai_gate = require("TetraVim.util.ai.spec.gate")
 local ai_tasks = require("TetraVim.util.ai.spec.tasks")
+local ai_hooks = require("TetraVim.util.ai.hooks")
 
 map("n", "<leader>ikx", ai_context.seed, { desc = "Seed .context/ knowledge base" })
 map("n", "<leader>iky", ai_skills.eject, { desc = "Copy skill templates into ./skills/ for editing" })
@@ -373,6 +374,7 @@ end, { desc = "Run task-planner (requires design.md approved)" })
 map("n", "<leader>ikn", ai_tasks.run_next, { desc = "Run next pending task (task-executor)" })
 map("n", "<leader>ikv", ai_tasks.verify, { desc = "Verify next task (real overseer test run)" })
 map("n", "<leader>ikd", ai_tasks.mark_done, { desc = "Mark next pending task done (after reviewing PASS)" })
+map("n", "<leader>ikh", ai_hooks.picker, { desc = "List/toggle agent hooks (.hooks/*.md)" })
 
 -- Settings (<leader>is) -- enable/disable each tool and pick the default
 -- provider/model without editing Lua. Toggling `enabled` here needs a

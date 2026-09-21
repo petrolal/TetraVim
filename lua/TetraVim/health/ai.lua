@@ -64,6 +64,17 @@ function M.check()
   else
     vim.health.info("mcp-hub: NOT found on $PATH -- run :Lazy build mcphub.nvim (npm i -g mcp-hub)")
   end
+
+  -- Agent hooks (util/ai/hooks.lua) -- event-triggered .hooks/*.md prompts.
+  local hooks = require("TetraVim.util.ai.hooks").load()
+  if #hooks == 0 then
+    vim.health.info("Agent hooks: none in .hooks/ (<leader>ikh to seed an example)")
+  else
+    local enabled = vim.tbl_count(vim.tbl_filter(function(h)
+      return h.enabled
+    end, hooks))
+    vim.health.ok(("Agent hooks: %d loaded, %d enabled"):format(#hooks, enabled))
+  end
 end
 
 return M

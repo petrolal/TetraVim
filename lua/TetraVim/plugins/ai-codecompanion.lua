@@ -56,7 +56,13 @@ return {
             })
           end,
         },
-        strategies = {
+        -- `interactions` (not the legacy `strategies` key): config.lua's
+        -- setup() detects a top-level `strategies` field and *replaces*
+        -- `interactions` wholesale with `deep_extend(defaults, strategies)`,
+        -- which would silently drop the `interactions.shared.keymaps`
+        -- override below. Everything -- adapters and the accept/reject
+        -- keymap remap -- has to live under this one `interactions` table.
+        interactions = {
           chat = {
             adapter = os.getenv("ANTHROPIC_API_KEY") and "anthropic" or "copilot",
             -- `#context` -- Kiro-style contextual project knowledge base
@@ -66,6 +72,22 @@ return {
           },
           inline = { adapter = os.getenv("ANTHROPIC_API_KEY") and "anthropic" or "copilot" },
           cmd = { adapter = os.getenv("ANTHROPIC_API_KEY") and "anthropic" or "copilot" },
+          -- Accept/reject review for AI-proposed edits (Kiro/Cursor-style
+          -- inline diff apply) -- codecompanion ships this by default under
+          -- bare `g1`-`g4`/`gv`; remapped here onto <leader>ic* to match the
+          -- rest of this group (icc/ica/ice/icf/ict/icb/ici/icg already
+          -- taken -- see core/keymaps.lua). Shared across chat, inline
+          -- edits and the tool-driven file edits from ai-mcphub.lua, so one
+          -- keyset covers every place the LLM proposes a buffer change.
+          shared = {
+            keymaps = {
+              view_diff = { modes = { n = "<leader>icv" } },
+              always_accept = { modes = { n = "<leader>icA" } },
+              accept_change = { modes = { n = "<leader>icy" } },
+              reject_change = { modes = { n = "<leader>icn" } },
+              cancel = { modes = { n = "<leader>icx" } },
+            },
+          },
         },
         -- Spec Mode's spec-writer/task-planner/task-executor skills
         -- (TetraVim.util.ai.skills, Pocock-pattern externalized markdown),

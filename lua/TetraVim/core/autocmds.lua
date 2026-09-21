@@ -401,3 +401,18 @@ vim.api.nvim_create_autocmd("BufReadCmd", {
     end
   end,
 })
+
+-- (Re)register TetraVim.util.ai.hooks' watchers whenever the working
+-- directory changes -- `.hooks/*.md` is per-project, same as `.context/`
+-- and `skills/`, so switching projects must re-scan rather than keep firing
+-- the previous project's hooks. Deferred with pcall: hooks.lua is harmless
+-- to load early, but this keeps the same defensive posture as every other
+-- optional-plugin-backed feature in this distro.
+vim.api.nvim_create_autocmd({ "VimEnter", "DirChanged" }, {
+  group = augroup("agent_hooks"),
+  callback = function()
+    pcall(function()
+      require("TetraVim.util.ai.hooks").setup()
+    end)
+  end,
+})

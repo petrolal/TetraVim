@@ -1,6 +1,6 @@
 # TetraVim Technical Reference & Architecture Guide
 
-Welcome to the **TetraVim** technical reference manual. This document consolidates the architectural specifications, enterprise operability features, test verification suites, and the IntelliJ IDEA parity matrix for `TetraVim`.
+Welcome to the **TetraVim** technical reference manual. This document consolidates the architectural specifications, enterprise operability features, test verification suites, the IntelliJ IDEA parity matrix, and the Kiro parity matrix for `TetraVim`.
 
 ---
 
@@ -178,12 +178,37 @@ Verify with `:checkhealth TetraVim` → *IDE-Parity Language Servers* section.
 
 ---
 
-## 7. Contributing & Code of Conduct
+## 7. Kiro Parity Matrix
+
+What Kiro (AWS's spec-driven agentic IDE) supports out of the box, and how TetraVim covers it with native Neovim tooling + `codecompanion.nvim`. Unlike the IntelliJ matrix above, this one is deliberately not all "Full" -- Kiro's autonomous "vibe"/autopilot mode is a philosophy TetraVim declines by design, not a gap it plans to close.
+
+| Kiro Feature | TetraVim Coverage | Spec File | Keys |
+| --- | :---: | --- | --- |
+| Specs (`requirements.md` / `design.md` / `tasks.md`) | Full | `.specs/*.md`, `util/ai/skills/defaults/{spec-writer,task-planner}.md` | `<leader>iks`, `<leader>ikp` |
+| Steering docs (persistent project context, always injected) | Full | `util/ai/context.lua`, `.context/*.md` | `<leader>ikx`, `#context` |
+| Spec-file human approval gate | Full | `util/ai/spec/gate.lua` -- deterministic `status: approved` frontmatter check, never LLM-set | `<leader>ika` |
+| Task execution loop (plan → run one task → verify → mark done) | Full | `util/ai/spec/tasks.lua` | `<leader>ikn`, `<leader>ikv`, `<leader>ikd` |
+| Task verification against real command output (not just model self-report) | Full -- exceeds Kiro | `util/ai/spec/tasks.lua` `verify()` → `overseer.nvim` test run | `<leader>ikv` |
+| Agent Hooks (event-triggered automated prompts) | Full | `util/ai/hooks.lua`, `.hooks/*.md` | `<leader>ikh` |
+| Agentic tool use (filesystem/shell edits from chat) | Full | `plugins/ai-mcphub.lua` (`mcphub.nvim`), tool calls always surfaced for review, `auto_approve = false` | `:MCPHub` |
+| Externalized, editable agent prompts (skills) | Full | `util/ai/skills.lua`, bundled defaults + per-project `skills/*.md` override | `<leader>iky` |
+| Agentic chat panel | Full | `plugins/ai-codecompanion.lua` (`codecompanion.nvim`) | `<leader>icc` |
+| Chat/inline-edit applies code changes directly to the buffer as a reviewable diff, with accept/reject (Kiro/Cursor Composer-style) | Full | `codecompanion.nvim` inline diff engine, remapped in `plugins/ai-codecompanion.lua` `interactions.shared.keymaps` | `<leader>icv` view diff, `<leader>icy` accept, `<leader>icn` reject, `<leader>icA` accept all, `<leader>icx` cancel |
+| Inline ghost-text autocomplete | Full | `plugins/ai-copilot.lua` | `<leader>ipt` |
+| Multi-model choice (Kiro: Claude via Bedrock only) | Full -- exceeds Kiro | `util/ai/config.lua` (Claude / Gemini / Copilot) | `<leader>is` |
+| Autonomous "Autopilot" mode (agent edits multiple files unattended) | Not supported (by design) | -- every hook and task-executor run opens a chat with `auto_submit = false`; every MCP tool call requires review | -- |
+| Multimodal spec generation (image/screenshot → spec) | Not supported | -- codecompanion's chat is text-only in this distro's configuration | -- |
+
+Verify with `:checkhealth TetraVim` → *AI Assistants* section (reports loaded/enabled skill and hook counts).
+
+---
+
+## 8. Contributing & Code of Conduct
 
 Contributions are welcome! Please ensure that all contributions, discussions, and interactions adhere to our [Code of Conduct](../CODE_OF_CONDUCT.md).
 
 ---
 
-## 8. License
+## 9. License
 
 This project is distributed solely under the [GNU General Public License v3.0 (GPL-3.0)](../LICENSE). See [LICENSE](../LICENSE) for details.
