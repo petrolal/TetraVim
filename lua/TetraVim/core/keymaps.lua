@@ -350,6 +350,30 @@ map("n", "<leader>ips", ai_copilot.status, { desc = "Status" })
 map("n", "<leader>ipp", ai_copilot.panel, { desc = "Suggestions Panel" })
 map("n", "<leader>ipa", ai_copilot.auth, { desc = "Authenticate" })
 
+-- Spec-Driven Development group (<leader>ik) -- Kiro-style contextual
+-- knowledge base + spec-writer/task-planner/task-executor skills. Thin
+-- dispatchers only; the state machine (context indexing, skill loading, the
+-- deterministic approval gate) lives in TetraVim.util.ai.context/.skills/
+-- .spec.gate, mirroring every other <leader>i group's split.
+local ai_context = require("TetraVim.util.ai.context")
+local ai_skills = require("TetraVim.util.ai.skills")
+local ai_gate = require("TetraVim.util.ai.spec.gate")
+local ai_tasks = require("TetraVim.util.ai.spec.tasks")
+
+map("n", "<leader>ikx", ai_context.seed, { desc = "Seed .context/ knowledge base" })
+map("n", "<leader>iky", ai_skills.eject, { desc = "Copy skill templates into ./skills/ for editing" })
+map("n", "<leader>iks", "<cmd>CodeCompanion /spec-writer<cr>", { desc = "Run spec-writer (requirements -> design)" })
+map("n", "<leader>ika", ai_gate.toggle_approval, { desc = "Toggle approval status of current spec file" })
+map("n", "<leader>ikp", function()
+  if not ai_gate.require_approved(".specs/design.md", "task-planner") then
+    return
+  end
+  vim.cmd("CodeCompanion /task-planner")
+end, { desc = "Run task-planner (requires design.md approved)" })
+map("n", "<leader>ikn", ai_tasks.run_next, { desc = "Run next pending task (task-executor)" })
+map("n", "<leader>ikv", ai_tasks.verify, { desc = "Verify next task (real overseer test run)" })
+map("n", "<leader>ikd", ai_tasks.mark_done, { desc = "Mark next pending task done (after reviewing PASS)" })
+
 -- Settings (<leader>is) -- enable/disable each tool and pick the default
 -- provider/model without editing Lua. Toggling `enabled` here needs a
 -- `:Lazy reload <plugin>` or a restart to actually install/uninstall the

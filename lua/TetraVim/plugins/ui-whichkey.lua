@@ -36,6 +36,7 @@ return {
         { "<leader>ic", group = "claude", icon = "󰧑 " },
         { "<leader>ig", group = "gemini", icon = "󰧑 " },
         { "<leader>ip", group = "copilot", icon = "󰚩 " },
+        { "<leader>ik", group = "spec-driven dev", icon = "󰧑 " },
         { "<leader>t", group = "test runner", icon = "󰙨 " },
         { "<leader>x", group = "quality/security", icon = "󰒃 " },
         { "<leader>xd", group = "diagnostics", icon = "󰒡 " },

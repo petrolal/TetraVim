@@ -54,6 +54,16 @@ function M.check()
   else
     vim.health.warn("curl: NOT found on $PATH -- codecompanion cannot make requests")
   end
+
+  -- MCP tool-calling (ai-mcphub.lua) -- gives task-executor and other chats
+  -- real filesystem/shell/etc tool access instead of text-only output.
+  if not config.is_enabled("claude") then
+    vim.health.info("mcphub.nvim: disabled alongside Claude (<leader>is to enable)")
+  elseif vim.fn.executable("mcp-hub") == 1 then
+    vim.health.ok("mcp-hub: installed -- MCP tool-calling available to codecompanion chats")
+  else
+    vim.health.info("mcp-hub: NOT found on $PATH -- run :Lazy build mcphub.nvim (npm i -g mcp-hub)")
+  end
 end
 
 return M

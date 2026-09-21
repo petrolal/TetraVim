@@ -29,39 +29,69 @@ return {
       return config.is_enabled("claude")
     end,
     cmd = { "CodeCompanion", "CodeCompanionChat", "CodeCompanionActions", "CodeCompanionCmd" },
-    opts = {
-      adapters = {
-        copilot = function()
-          return require("codecompanion.adapters").extend("copilot", {
-            schema = {
-              model = {
-                default = "claude-3.5-sonnet",
+    -- Function form (not a static table): the prompt_library/variables below
+    -- pull in TetraVim.util.ai.skills + .context, which glob the current
+    -- project on every read -- deferring to plugin-load time (matches
+    -- tools-diffview.lua's opts-as-function pattern) keeps that off the
+    -- startup path when Claude is disabled or codecompanion hasn't loaded.
+    opts = function()
+      return {
+        adapters = {
+          copilot = function()
+            return require("codecompanion.adapters").extend("copilot", {
+              schema = {
+                model = {
+                  default = "claude-3.5-sonnet",
+                },
               },
-            },
-          })
-        end,
-        anthropic = function()
-          return require("codecompanion.adapters").extend("anthropic", {
-            schema = {
-              model = {
-                default = config.model("claude"),
+            })
+          end,
+          anthropic = function()
+            return require("codecompanion.adapters").extend("anthropic", {
+              schema = {
+                model = {
+                  default = config.model("claude"),
+                },
               },
+            })
+          end,
+        },
+        strategies = {
+          chat = {
+            adapter = os.getenv("ANTHROPIC_API_KEY") and "anthropic" or "copilot",
+            -- `#context` -- Kiro-style contextual project knowledge base
+            -- (TetraVim.util.ai.context): architecture/conventions/domain/
+            -- tech-stack, resolved fresh from .context/*.md on every use.
+            variables = require("TetraVim.util.ai.context").codecompanion_variable(),
+          },
+          inline = { adapter = os.getenv("ANTHROPIC_API_KEY") and "anthropic" or "copilot" },
+          cmd = { adapter = os.getenv("ANTHROPIC_API_KEY") and "anthropic" or "copilot" },
+        },
+        -- Spec Mode's spec-writer/task-planner/task-executor skills
+        -- (TetraVim.util.ai.skills, Pocock-pattern externalized markdown),
+        -- invoked as `/spec-writer` etc. -- see <leader>ik keymaps.
+        prompt_library = require("TetraVim.util.ai.skills").prompt_library(),
+        -- MCP tool-calling (ai-mcphub.lua) -- gives every chat, task-executor
+        -- included, real filesystem/shell/etc access via whatever servers
+        -- are registered in :MCPHub, instead of text-only suggestions.
+        extensions = {
+          mcphub = {
+            callback = "mcphub.extensions.codecompanion",
+            opts = {
+              show_result_in_chat = true,
+              make_vars = true,
+              make_slash_commands = true,
             },
-          })
-        end,
-      },
-      strategies = {
-        chat = { adapter = os.getenv("ANTHROPIC_API_KEY") and "anthropic" or "copilot" },
-        inline = { adapter = os.getenv("ANTHROPIC_API_KEY") and "anthropic" or "copilot" },
-        cmd = { adapter = os.getenv("ANTHROPIC_API_KEY") and "anthropic" or "copilot" },
-      },
-      display = {
-        -- Persistent split, never a floating window, per this distro's
-        -- established response-display convention (see kulala.nvim / gRPC /
-        -- Endpoints-panel output in tools-http.lua / util/clients).
-        chat = { window = { layout = "vertical", position = "right" } },
-      },
-    },
+          },
+        },
+        display = {
+          -- Persistent split, never a floating window, per this distro's
+          -- established response-display convention (see kulala.nvim / gRPC /
+          -- Endpoints-panel output in tools-http.lua / util/clients).
+          chat = { window = { layout = "vertical", position = "right" } },
+        },
+      }
+    end,
     config = function(_, opts)
       require("codecompanion").setup(opts)
     end,
