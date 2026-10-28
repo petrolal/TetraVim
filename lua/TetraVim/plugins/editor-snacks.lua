@@ -460,11 +460,12 @@ return {
     opts = {},
     config = function(_, opts)
       require("persistence").setup(opts)
-      -- mksession has no concept of the Snacks explorer (it's a picker, not
-      -- a real file buffer), so if it's left open when a session is saved,
-      -- its window is serialized as a blank `enew` buffer and comes back
-      -- empty on restore instead of reopening the explorer. Close it before
-      -- saving and reopen it once the session loads back in.
+      -- mksession has no concept of the neo-tree explorer (its window holds
+      -- a `nofile` buffer, not a real file buffer), so if it's left open
+      -- when a session is saved, its window is serialized as a blank
+      -- `enew` buffer and comes back empty on restore instead of reopening
+      -- the explorer. Close it before saving and reopen it once the
+      -- session loads back in.
       require("TetraVim.util.session").setup()
     end,
     keys = {
