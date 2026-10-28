@@ -71,7 +71,19 @@ return {
                       and vim.bo[bufnr].buftype == ""
                       and vim.bo[bufnr].filetype ~= ""
                     then
-                      pcall(vim.api.nvim_exec_autocmds, "FileType", { buffer = bufnr })
+                      -- nvim_exec_autocmds() matches the FileType pattern
+                      -- against `bufnr`, but does NOT make it the current
+                      -- buffer -- ftplugin scripts (e.g. runtime
+                      -- ftplugin/markdown.lua's vim.treesitter.start()) rely
+                      -- on "current buffer" meaning "the buffer whose
+                      -- filetype just fired", so without nvim_buf_call this
+                      -- runs against whatever buffer the active window
+                      -- happens to show (neo-tree's sidebar, a picker, ...)
+                      -- and crashes trying to attach e.g. a "neo-tree"
+                      -- treesitter parser that doesn't exist.
+                      pcall(vim.api.nvim_buf_call, bufnr, function()
+                        vim.api.nvim_exec_autocmds("FileType", { buffer = bufnr })
+                      end)
                     end
                   end
                 end)

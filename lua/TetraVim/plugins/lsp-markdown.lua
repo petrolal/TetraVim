@@ -24,6 +24,15 @@ return {
       opts.servers = opts.servers or {}
       opts.servers.marksman = {
         filetypes = { "markdown", "markdown.mdx" },
+        -- marksman is a self-contained .NET binary; on a system with no
+        -- system libicu (e.g. NixOS without it in nix-ld.libraries), it
+        -- FailFasts on startup -- "Couldn't find a valid ICU package" --
+        -- instead of attaching. Invariant globalization mode is .NET's own
+        -- documented escape hatch for exactly this (marksman does no
+        -- culture-specific text work, so there's no behaviour to lose).
+        cmd_env = {
+          DOTNET_SYSTEM_GLOBALIZATION_INVARIANT = "1",
+        },
       }
       -- ltex-ls is a JVM server and its default `cmd` is `ltex-ls`. If Mason
       -- has not fetched it yet, registering it would make every Markdown
