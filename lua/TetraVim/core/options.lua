@@ -11,6 +11,16 @@ vim.g.have_nerd_font = true
 vim.g.loaded_perl_provider = 0
 vim.g.loaded_ruby_provider = 0
 
+-- Disable netrw outright rather than relying on neo-tree's
+-- `hijack_netrw_behavior` to replace it at runtime. Netrw still briefly
+-- renders a directory listing of its own (opening `nvim .` reads the
+-- directory arg before VimEnter/neo-tree's hijack hook ever runs), which
+-- shows up as a one-frame flash/"blink" of netrw's bare listing right
+-- before neo-tree's tree takes over. Disabling it up front means there's
+-- nothing left to flash.
+vim.g.loaded_netrw = 1
+vim.g.loaded_netrwPlugin = 1
+
 -- Enterprise headless mode flag (Story 5‑2)
 vim.g.tetravim_headless = false
 
