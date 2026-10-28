@@ -11,8 +11,8 @@ map("n", "<leader>wl", "<C-w>l", { desc = "Focus right window" })
 
 -- File explorer shortcut required by the smoke test
 vim.keymap.set("n", "<leader>e", function()
-  require("oil").open()
-end, { desc = "Open file explorer (oil.nvim)" })
+  require("neo-tree.command").execute({ action = "focus", source = "filesystem", toggle = true })
+end, { desc = "Toggle file explorer (neo-tree.nvim)" })
 
 -- Visual Selection & Line Movement Chords (Story 9.2)
 map("v", "J", ":m '>+1<cr>gv=gv", { desc = "Move Down" })

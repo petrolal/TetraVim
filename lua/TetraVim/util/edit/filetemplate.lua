@@ -33,13 +33,16 @@ end
 -- ---------------------------------------------------------------------------
 
 --- The directory a "new file" action should target: the browsed directory in
---- an oil buffer, else the current file's parent, else the working dir.
+--- a neo-tree sidebar, else the current file's parent, else the working dir.
 ---@return string
 function M.target_dir()
-  if vim.bo.filetype == "oil" then
-    local ok, oil = pcall(require, "oil")
+  if vim.bo.filetype == "neo-tree" then
+    local ok, manager = pcall(require, "neo-tree.sources.manager")
     if ok then
-      local dir = oil.get_current_dir()
+      local state = manager.get_state("filesystem")
+      local node = state and state.tree and state.tree:get_node()
+      local dir = node and (node.type == "directory" and node.path or vim.fn.fnamemodify(node.path, ":h"))
+        or (state and state.path)
       if dir and dir ~= "" then
         return vim.fs.normalize((dir:gsub("/$", "")))
       end
@@ -101,12 +104,12 @@ end
 
 --- Best-effort "primary language" for ordering the picker: the current
 --- buffer's filetype, or the dominant source language of `root` when the
---- current buffer has none (dir / empty / oil).
+--- current buffer has none (dir / empty / neo-tree).
 ---@param root string
 ---@return string|nil
 local function context_language(root)
   local ft = vim.bo.filetype
-  if ft ~= nil and ft ~= "" and ft ~= "oil" and ft ~= "snacks_picker_list" then
+  if ft ~= nil and ft ~= "" and ft ~= "neo-tree" and ft ~= "snacks_picker_list" then
     return ft
   end
   for _, probe in ipairs({

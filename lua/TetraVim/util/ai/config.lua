@@ -20,10 +20,10 @@ local PATH = vim.fs.joinpath(vim.fn.stdpath("data"), "TetraVim", "ai.json")
 
 local DEFAULTS = {
   enabled = {
-    claude = true,
-    gemini = true,
-    copilot = true,
-    cursor = true,
+    claude = false,
+    gemini = false,
+    copilot = false,
+    cursor = false,
   },
   default_provider = "claude",
   models = {

@@ -17,8 +17,8 @@ local function find_upward(path)
     return nil, nil
   end
 
-  -- Strip oil:// or file:// protocol prefixes
-  path = path:gsub("^oil://", ""):gsub("^file://", "")
+  -- Strip file:// protocol prefix
+  path = path:gsub("^file://", "")
 
   -- If it's a file, start from its containing directory
   if vim.fn.filereadable(path) == 1 then
